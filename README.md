@@ -8,7 +8,7 @@
 Whether you shoot Sony RAWs or have terabytes of family memories, Praetorian keeps everything local, fast, and under your control. No subscriptions. No tracking. Just your photos.
 
 ---
-
+Lu
 ## Why Praetorian?
 
 Modern photo management has drifted toward the cloud. While convenient, services like Google Photos and Adobe Lightroom Cloud require constant internet access, push expensive subscriptions, or lock your data into proprietary catalogs.
@@ -90,4 +90,4 @@ Praetorian is licensed under the **Business Source License v1.1**. See `LICENSE`
 
 ---
 
-**Made with 💪🏽⚔️ by [RedRoma](https://github.com/RedRoma)**
+**Made with _strength_ by [RedRoma](https://github.com/RedRoma)**
