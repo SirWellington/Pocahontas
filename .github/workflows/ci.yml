@@ -8,7 +8,7 @@ on:
 
 jobs:
   check:
-    name: Type Check & Lint
+    name: Type Check & Build Frontend
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -29,7 +29,7 @@ jobs:
         run: npm run build
 
   build:
-    name: Build
+    name: Build Tauri App
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -68,6 +68,11 @@ jobs:
       - name: Build frontend
         run: npm run build
 
+      - name: Create temporary SQLite database for sqlx verification
+        run: |
+          touch ci-test.db
+          echo "DATABASE_URL=sqlite:ci-test.db" >> src-tauri/.env
+
       - name: Install Tauri CLI
         run: cargo install tauri-cli --version "^2"
 
@@ -75,4 +80,4 @@ jobs:
         run: cargo tauri build --ci --verbose
         working-directory: ./src-tauri
         env:
-          DATABASE_URL: sqlite::memory:
+          DATABASE_URL: sqlite:ci-test.db
