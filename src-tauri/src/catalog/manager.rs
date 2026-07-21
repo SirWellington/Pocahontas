@@ -164,7 +164,9 @@ impl CatalogManager {
         let file_hash = self.compute_file_hash(file_path)?;
 
         // Parse EXIF metadata
-        let exif = self.exif_parser.parse(file_path).unwrap_or_default();
+        let exif = self.exif_parser
+            .parse(file_path)
+            .unwrap_or_default();
 
         // Insert image record
         let result = sqlx::query!(
