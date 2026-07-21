@@ -31,11 +31,15 @@
                 "name": "sqlite_autoindex__migrations_1",
                 "unique": true,
                 "origin": "u",
-                "columns": ["name"]
+                "columns": [
+                  "name"
+                ]
               }
             ],
             "primary_key": {
-              "columns": ["id"],
+              "columns": [
+                "id"
+              ],
               "custom_ordering": false
             },
             "strict": false
@@ -88,9 +92,13 @@
             "foreign_keys": [
               {
                 "old_table": "folders",
-                "old_columns": ["parent_id"],
+                "old_columns": [
+                  "parent_id"
+                ],
                 "new_table": "folders",
-                "new_columns": ["id"],
+                "new_columns": [
+                  "id"
+                ],
                 "on_delete": "SET NULL",
                 "on_update": "NO ACTION"
               }
@@ -100,11 +108,15 @@
                 "name": "idx_folders_path",
                 "unique": true,
                 "origin": "d",
-                "columns": ["path"]
+                "columns": [
+                  "path"
+                ]
               }
             ],
             "primary_key": {
-              "columns": ["id"],
+              "columns": [
+                "id"
+              ],
               "custom_ordering": false
             },
             "strict": false
@@ -253,9 +265,13 @@
             "foreign_keys": [
               {
                 "old_table": "images",
-                "old_columns": ["folder_id"],
+                "old_columns": [
+                  "folder_id"
+                ],
                 "new_table": "folders",
-                "new_columns": ["id"],
+                "new_columns": [
+                  "id"
+                ],
                 "on_delete": "SET NULL",
                 "on_update": "NO ACTION"
               }
@@ -265,41 +281,55 @@
                 "name": "idx_images_folder_id",
                 "unique": false,
                 "origin": "d",
-                "columns": ["folder_id"]
+                "columns": [
+                  "folder_id"
+                ]
               },
               {
                 "name": "idx_images_date_taken",
                 "unique": false,
                 "origin": "d",
-                "columns": ["date_taken"]
+                "columns": [
+                  "date_taken"
+                ]
               },
               {
                 "name": "idx_images_rating",
                 "unique": false,
                 "origin": "d",
-                "columns": ["rating"]
+                "columns": [
+                  "rating"
+                ]
               },
               {
                 "name": "idx_images_file_path",
                 "unique": true,
                 "origin": "d",
-                "columns": ["file_path"]
+                "columns": [
+                  "file_path"
+                ]
               },
               {
                 "name": "idx_images_faces_indexed",
                 "unique": false,
                 "origin": "d",
-                "columns": ["faces_indexed"]
+                "columns": [
+                  "faces_indexed"
+                ]
               },
               {
                 "name": "idx_images_is_missing",
                 "unique": false,
                 "origin": "d",
-                "columns": ["is_missing"]
+                "columns": [
+                  "is_missing"
+                ]
               }
             ],
             "primary_key": {
-              "columns": ["id"],
+              "columns": [
+                "id"
+              ],
               "custom_ordering": false
             },
             "strict": false
@@ -436,9 +466,13 @@
             "foreign_keys": [
               {
                 "old_table": "exif_data",
-                "old_columns": ["image_id"],
+                "old_columns": [
+                  "image_id"
+                ],
                 "new_table": "images",
-                "new_columns": ["id"],
+                "new_columns": [
+                  "id"
+                ],
                 "on_delete": "CASCADE",
                 "on_update": "NO ACTION"
               }
@@ -448,35 +482,47 @@
                 "name": "idx_exif_camera_model",
                 "unique": false,
                 "origin": "d",
-                "columns": ["camera_model"]
+                "columns": [
+                  "camera_model"
+                ]
               },
               {
                 "name": "idx_exif_lens_model",
                 "unique": false,
                 "origin": "d",
-                "columns": ["lens_model"]
+                "columns": [
+                  "lens_model"
+                ]
               },
               {
                 "name": "idx_exif_iso",
                 "unique": false,
                 "origin": "d",
-                "columns": ["iso"]
+                "columns": [
+                  "iso"
+                ]
               },
               {
                 "name": "idx_exif_gps_lat",
                 "unique": false,
                 "origin": "d",
-                "columns": ["gps_latitude"]
+                "columns": [
+                  "gps_latitude"
+                ]
               },
               {
                 "name": "idx_exif_gps_lon",
                 "unique": false,
                 "origin": "d",
-                "columns": ["gps_longitude"]
+                "columns": [
+                  "gps_longitude"
+                ]
               }
             ],
             "primary_key": {
-              "columns": ["id"],
+              "columns": [
+                "id"
+              ],
               "custom_ordering": false
             },
             "strict": false
@@ -520,11 +566,15 @@
                 "name": "idx_people_name",
                 "unique": false,
                 "origin": "d",
-                "columns": ["name"]
+                "columns": [
+                  "name"
+                ]
               }
             ],
             "primary_key": {
-              "columns": ["id"],
+              "columns": [
+                "id"
+              ],
               "custom_ordering": false
             },
             "strict": false
@@ -601,17 +651,25 @@
             "foreign_keys": [
               {
                 "old_table": "faces",
-                "old_columns": ["image_id"],
+                "old_columns": [
+                  "image_id"
+                ],
                 "new_table": "images",
-                "new_columns": ["id"],
+                "new_columns": [
+                  "id"
+                ],
                 "on_delete": "CASCADE",
                 "on_update": "NO ACTION"
               },
               {
                 "old_table": "faces",
-                "old_columns": ["person_id"],
+                "old_columns": [
+                  "person_id"
+                ],
                 "new_table": "people",
-                "new_columns": ["id"],
+                "new_columns": [
+                  "id"
+                ],
                 "on_delete": "SET NULL",
                 "on_update": "NO ACTION"
               }
@@ -621,17 +679,23 @@
                 "name": "idx_faces_image_id",
                 "unique": false,
                 "origin": "d",
-                "columns": ["image_id"]
+                "columns": [
+                  "image_id"
+                ]
               },
               {
                 "name": "idx_faces_person_id",
                 "unique": false,
                 "origin": "d",
-                "columns": ["person_id"]
+                "columns": [
+                  "person_id"
+                ]
               }
             ],
             "primary_key": {
-              "columns": ["id"],
+              "columns": [
+                "id"
+              ],
               "custom_ordering": false
             },
             "strict": false
@@ -660,7 +724,9 @@
             "foreign_keys": [],
             "indices": [],
             "primary_key": {
-              "columns": ["id"],
+              "columns": [
+                "id"
+              ],
               "custom_ordering": false
             },
             "strict": false
@@ -683,17 +749,25 @@
             "foreign_keys": [
               {
                 "old_table": "image_tags",
-                "old_columns": ["image_id"],
+                "old_columns": [
+                  "image_id"
+                ],
                 "new_table": "images",
-                "new_columns": ["id"],
+                "new_columns": [
+                  "id"
+                ],
                 "on_delete": "CASCADE",
                 "on_update": "NO ACTION"
               },
               {
                 "old_table": "image_tags",
-                "old_columns": ["tag_id"],
+                "old_columns": [
+                  "tag_id"
+                ],
                 "new_table": "tags",
-                "new_columns": ["id"],
+                "new_columns": [
+                  "id"
+                ],
                 "on_delete": "CASCADE",
                 "on_update": "NO ACTION"
               }
@@ -703,11 +777,16 @@
                 "name": "idx_image_tags_tag_id",
                 "unique": false,
                 "origin": "d",
-                "columns": ["tag_id"]
+                "columns": [
+                  "tag_id"
+                ]
               }
             ],
             "primary_key": {
-              "columns": ["image_id", "tag_id"],
+              "columns": [
+                "image_id",
+                "tag_id"
+              ],
               "custom_ordering": false
             },
             "strict": false
@@ -742,7 +821,9 @@
             "foreign_keys": [],
             "indices": [],
             "primary_key": {
-              "columns": ["id"],
+              "columns": [
+                "id"
+              ],
               "custom_ordering": false
             },
             "strict": false
@@ -765,17 +846,25 @@
             "foreign_keys": [
               {
                 "old_table": "album_images",
-                "old_columns": ["album_id"],
+                "old_columns": [
+                  "album_id"
+                ],
                 "new_table": "albums",
-                "new_columns": ["id"],
+                "new_columns": [
+                  "id"
+                ],
                 "on_delete": "CASCADE",
                 "on_update": "NO ACTION"
               },
               {
                 "old_table": "album_images",
-                "old_columns": ["image_id"],
+                "old_columns": [
+                  "image_id"
+                ],
                 "new_table": "images",
-                "new_columns": ["id"],
+                "new_columns": [
+                  "id"
+                ],
                 "on_delete": "CASCADE",
                 "on_update": "NO ACTION"
               }
@@ -785,11 +874,16 @@
                 "name": "idx_album_images_image_id",
                 "unique": false,
                 "origin": "d",
-                "columns": ["image_id"]
+                "columns": [
+                  "image_id"
+                ]
               }
             ],
             "primary_key": {
-              "columns": ["album_id", "image_id"],
+              "columns": [
+                "album_id",
+                "image_id"
+              ],
               "custom_ordering": false
             },
             "strict": false
@@ -854,9 +948,13 @@
             "foreign_keys": [
               {
                 "old_table": "processing_queue",
-                "old_columns": ["image_id"],
+                "old_columns": [
+                  "image_id"
+                ],
                 "new_table": "images",
-                "new_columns": ["id"],
+                "new_columns": [
+                  "id"
+                ],
                 "on_delete": "CASCADE",
                 "on_update": "NO ACTION"
               }
@@ -866,11 +964,16 @@
                 "name": "idx_queue_status",
                 "unique": false,
                 "origin": "d",
-                "columns": ["status", "priority"]
+                "columns": [
+                  "status",
+                  "priority"
+                ]
               }
             ],
             "primary_key": {
-              "columns": ["id"],
+              "columns": [
+                "id"
+              ],
               "custom_ordering": false
             },
             "strict": false
