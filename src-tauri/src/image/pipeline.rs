@@ -216,7 +216,12 @@ impl ImagePipeline {
         match result {
             Ok(_) => {
                 sqlx::query!(
-                    "UPDATE images SET has_preview = 1, preview_hash = ? WHERE id = ?",
+                    r#"
+                    UPDATE images 
+                    SET has_preview = 1, 
+                        preview_hash = ? 
+                    WHERE id = ?
+                    "#,
                     output_path.file_name().unwrap().to_string_lossy(),
                     image_id,
                 )
