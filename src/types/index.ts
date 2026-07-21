@@ -15,6 +15,7 @@ export interface ImageRecord {
   is_favorite: boolean;
   faces_indexed: boolean;
   is_missing: boolean;
+  exif?: ExifData | null;
 }
 
 export interface ExifData {
@@ -77,3 +78,5 @@ export interface ProcessingJob {
   error_message: string | null;
   progress: number;
 }
+
+export type SidebarView = "library" | "develop" | "preview" | "map" | "people";
