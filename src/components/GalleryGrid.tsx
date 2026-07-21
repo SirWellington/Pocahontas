@@ -1,9 +1,5 @@
 import React, { useCallback, useRef } from "react";
-import {
-  useVirtualizer,
-  Virtualizer,
-  VirtualItem,
-} from "@tanstack/react-virtual";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { useCatalogStore } from "../hooks/useCatalog";
 import Thumbnail from "./Thumbnail";
 

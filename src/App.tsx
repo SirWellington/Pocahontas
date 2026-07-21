@@ -5,7 +5,7 @@ import GalleryGrid from "./GalleryGrid";
 import MetadataPanel from "./MetadataPanel";
 
 const App: React.FC = () => {
-  const { path, isLoading, error, importDirectory, clearSelection } =
+  const { path, isLoading, error, importDirectory } =
     useCatalogStore();
   const [showMetadata, setShowMetadata] = useState(true);
 

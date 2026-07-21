@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { ImageRecord, CatalogState } from "../types";
+import { CatalogState } from "../types";
 import * as catalog from "../services/catalog";
 
 interface CatalogStore extends CatalogState {
