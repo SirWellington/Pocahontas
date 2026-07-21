@@ -172,8 +172,15 @@ impl CatalogManager {
         let result = sqlx::query!(
             r#"
             INSERT INTO images (
-                folder_id, file_path, file_name, file_extension,
-                file_size_bytes, width, height, date_taken, file_hash
+                folder_id, 
+                file_path, 
+                file_name, 
+                file_extension,
+                file_size_bytes,
+                width, 
+                height, 
+                date_taken, 
+                file_hash
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             "#,
             folder_id,
