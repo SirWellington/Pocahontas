@@ -1,0 +1,70 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  * {
+    @apply border-gray-800;
+  }
+
+  body {
+    @apply bg-gray-950 text-gray-100 antialiased;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+      "Helvetica Neue", Arial, sans-serif;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-700 rounded;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-600;
+  }
+}
+
+@layer components {
+  .sidebar-panel {
+    @apply w-72 bg-gray-900 border-l border-gray-800 flex flex-col overflow-hidden;
+  }
+
+  .toolbar {
+    @apply h-12 bg-gray-900 border-b border-gray-800 flex items-center px-4 gap-2;
+  }
+
+  .btn-primary {
+    @apply px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-500 rounded transition-colors;
+  }
+
+  .btn-secondary {
+    @apply px-3 py-1.5 text-sm bg-gray-800 hover:bg-gray-700 rounded transition-colors;
+  }
+
+  .thumbnail-grid {
+    @apply grid gap-1 p-2;
+  }
+
+  .thumbnail-cell {
+    @apply relative aspect-square bg-gray-900 rounded overflow-hidden cursor-pointer;
+  }
+
+  .thumbnail-cell:hover {
+    @apply ring-2 ring-blue-500;
+  }
+
+  .thumbnail-cell.selected {
+    @apply ring-2 ring-blue-400;
+  }
+}
