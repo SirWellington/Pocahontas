@@ -20,7 +20,7 @@ const THUMB_QUALITY: u8 = 75;
 const PREVIEW_QUALITY: u8 = 85;
 
 /// Maximum concurrent image processing tasks.
-const MAX_CONCURRENT_TASKS: usize = 4;
+const MAX_CONCURRENT_TASKS: usize = 8;
 
 /// Represents a queued image processing job.
 #[derive(Debug, Clone)]
