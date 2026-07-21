@@ -1,0 +1,36 @@
+# Rust
+target/
+src-tauri/target/
+**/*.rs.bk
+
+# Node
+node_modules/
+dist/
+src-tauri/dist/
+
+# Tauri
+src-tauri/release/
+src-tauri/debug/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Secrets
+.env
+.env.local
+
+# Catalog files (local dev)
+*.praetorian
+cache/
+
+# Build artifacts
+*.log
