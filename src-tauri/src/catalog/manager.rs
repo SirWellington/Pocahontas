@@ -202,9 +202,18 @@ impl CatalogManager {
         sqlx::query!(
             r#"
             INSERT INTO exif_data (
-                image_id, camera_make, camera_model, lens_model,
-                iso, aperture_f_number, shutter_speed_num, shutter_speed_den,
-                focal_length_mm, gps_latitude, gps_longitude, gps_altitude
+                image_id, 
+                camera_make, 
+                camera_model, 
+                lens_model,
+                iso, 
+                aperture_f_number,
+                shutter_speed_num, 
+                shutter_speed_den,
+                focal_length_mm, 
+                gps_latitude, 
+                gps_longitude, 
+                gps_altitude
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             "#,
             image_id,
