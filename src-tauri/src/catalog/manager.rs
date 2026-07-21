@@ -324,10 +324,22 @@ impl CatalogManager {
 
         let images = sqlx::query_as::<_, ImageRecord>(
             r#"
-            SELECT id, folder_id, file_path, file_name, file_extension,
-                   file_size_bytes, width, height, date_taken, date_imported,
-                   has_thumbnail, has_preview, rating, is_favorite,
-                   faces_indexed, is_missing
+            SELECT id, 
+                   folder_id, 
+                   file_path, 
+                   file_name, 
+                   file_extension,
+                   file_size_bytes, 
+                   width, 
+                   height, 
+                   date_taken, 
+                   date_imported,
+                   has_thumbnail, 
+                   has_preview, 
+                   rating, 
+                   is_favorite,
+                   faces_indexed, 
+                   is_missing
             FROM images
             WHERE is_archived = 0
               AND ($1 IS NULL OR rating = $1)
