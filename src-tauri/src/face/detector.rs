@@ -202,7 +202,14 @@ pub async fn store_faces(
     for det in detections {
         sqlx::query!(
             r#"
-            INSERT INTO faces (image_id, bbox_x, bbox_y, bbox_width, bbox_height, confidence)
+            INSERT INTO faces (
+                image_id, 
+                bbox_x, 
+                bbox_y, 
+                bbox_width, 
+                bbox_height, 
+                confidence
+            )
             VALUES (?, ?, ?, ?, ?, ?)
             "#,
             image_id,
