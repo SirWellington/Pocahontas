@@ -84,87 +84,106 @@ impl ExifParser {
     fn parse_exif_bytes(&self, exif_bytes: &[u8]) -> Result<ExifData> {
         let mut data = ExifData::default();
 
-        if let Ok(ifh) = exif::Reader::new().read_from_buffer(exif_bytes) {
-            for entry in ifh.iter() {
-                match entry.ifd {
-                    exif::IFD::Primary => {
-                        match entry.entry_type {
-                            exif::EntryType::Make => {
-                                data.camera_make = entry.value.display_string().map(|s| s.to_string());
+        if let Ok(exif) = exif::Reader::new().read_raw(exif_bytes.to_vec()) {
+            for field in exif.fields() {
+                match field.ifd_num {
+                    exif::In::PRIMARY => {
+                        match field.tag {
+                            exif::Tag::Make => {
+                                data.camera_make = Some(field.display_value().to_string());
                             }
-                            exif::EntryType::Model => {
-                                data.camera_model = entry.value.display_string().map(|s| s.to_string());
+                            exif::Tag::Model => {
+                                data.camera_model = Some(field.display_value().to_string());
                             }
-                            exif::EntryType::DateTimeOriginal => {
-                                data.date_time_original = entry.value.display_string().map(|s| s.to_string());
+                            exif::Tag::DateTimeOriginal => {
+                                data.date_time_original = Some(field.display_value().to_string());
                             }
-                            exif::EntryType::Software => {
-                                data.software = entry.value.display_string().map(|s| s.to_string());
+                            exif::Tag::Software => {
+                                data.software = Some(field.display_value().to_string());
                             }
-                            exif::EntryType::ExifOffset => {
-                                // Points to Exif IFD
+                            exif::Tag::Orientation => {
+                                data.orientation = field.value.get_uint(0);
                             }
-                            _ => {}
-                        }
-                    }
-                    exif::IFD::Exif => {
-                        match entry.entry_type {
-                            exif::EntryType::ISOSpeedRatings => {
-                                data.iso = entry.value.get_u32().ok();
-                            }
-                            exif::EntryType::FNumber => {
-                                data.aperture = entry.value.get_rational().ok().map(|r| r.to_f64());
-                            }
-                            exif::EntryType::ExposureTime => {
-                                let rational = entry.value.get_rational().ok();
-                                if let Some(r) = rational {
-                                    data.shutter_num = Some(r.numerator as u32);
-                                    data.shutter_den = Some(r.denominator as u32);
-                                }
-                            }
-                            exif::EntryType::FocalLength => {
-                                data.focal_length = entry.value.get_rational().ok().map(|r| r.to_f64());
-                            }
-                            exif::EntryType::Flash => {
-                                let val = entry.value.get_u32().ok();
-                                data.flash_fired = val.map(|v| v & 1 != 0);
-                            }
-                            exif::EntryType::ExposureProgram => {
-                                data.exposure_mode = entry.value.display_string().map(|s| s.to_string());
-                            }
-                            exif::EntryType::WhiteBalance => {
-                                data.white_balance = entry.value.display_string().map(|s| s.to_string());
-                            }
-                            exif::EntryType::LensMake => {}
-                            exif::EntryType::LensModel => {
-                                data.lens_model = entry.value.display_string().map(|s| s.to_string());
-                            }
-                            exif::EntryType::ColorSpace => {
-                                data.color_space = entry.value.display_string().map(|s| s.to_string());
-                            }
-                            _ => {}
-                        }
-                    }
-                    exif::IFD::GPS => {
-                        match entry.entry_type {
-                            exif::EntryType::GPSLatitude => {
-                                data.gps_latitude = self.parse_gps_coordinate(entry);
-                            }
-                            exif::EntryType::GPSLongitude => {
-                                data.gps_longitude = self.parse_gps_coordinate(entry);
-                            }
-                            exif::EntryType::GPSLatitudeRef => {}
-                            exif::EntryType::GPSLongitudeRef => {}
-                            exif::EntryType::GPSAltitude => {
-                                data.gps_altitude = entry.value.get_rational().ok().map(|r| r.to_f64());
-                            }
-                            exif::EntryType::GPSDateStamp => {
-                                data.gps_date_time = entry.value.display_string().map(|s| s.to_string());
+                            exif::Tag::BitsPerSample => {
+                                data.bits_per_sample = field.value.get_uint(0);
                             }
                             _ => {}
                         }
                     }
                     _ => {}
+                }
+
+                // Exif IFD fields (identified by tag context)
+                if field.tag.context() == exif::Context::Exif {
+                    match field.tag {
+                        exif::Tag::ISOSpeed => {
+                            data.iso = field.value.get_uint(0);
+                        }
+                        exif::Tag::FNumber => {
+                            data.aperture = match &field.value {
+                                exif::Value::Rational(v) if !v.is_empty() => Some(v[0].to_f64()),
+                                exif::Value::SRational(v) if !v.is_empty() => Some(v[0].to_f64()),
+                                _ => field.value.get_uint(0).map(|u| u as f64),
+                            };
+                        }
+                        exif::Tag::ExposureTime => {
+                            if let exif::Value::Rational(v) = &field.value {
+                                if !v.is_empty() {
+                                    data.shutter_num = Some(v[0].num as u32);
+                                    data.shutter_den = Some(v[0].denom as u32);
+                                }
+                            }
+                        }
+                        exif::Tag::FocalLength => {
+                            data.focal_length = match &field.value {
+                                exif::Value::Rational(v) if !v.is_empty() => Some(v[0].to_f64()),
+                                exif::Value::SRational(v) if !v.is_empty() => Some(v[0].to_f64()),
+                                _ => field.value.get_uint(0).map(|u| u as f64),
+                            };
+                        }
+                        exif::Tag::Flash => {
+                            data.flash_fired = field.value.get_uint(0).map(|v| v & 1 != 0);
+                        }
+                        exif::Tag::ExposureProgram => {
+                            data.exposure_mode = Some(field.display_value().to_string());
+                        }
+                        exif::Tag::WhiteBalance => {
+                            data.white_balance = Some(field.display_value().to_string());
+                        }
+                        exif::Tag::LensMake => {}
+                        exif::Tag::LensModel => {
+                            data.lens_model = Some(field.display_value().to_string());
+                        }
+                        exif::Tag::ColorSpace => {
+                            data.color_space = Some(field.display_value().to_string());
+                        }
+                        _ => {}
+                    }
+                }
+
+                // GPS IFD fields
+                if field.tag.context() == exif::Context::Gps {
+                    match field.tag {
+                        exif::Tag::GPSLatitude => {
+                            data.gps_latitude = self.parse_gps_coordinate(&field.value);
+                        }
+                        exif::Tag::GPSLongitude => {
+                            data.gps_longitude = self.parse_gps_coordinate(&field.value);
+                        }
+                        exif::Tag::GPSLatitudeRef => {}
+                        exif::Tag::GPSLongitudeRef => {}
+                        exif::Tag::GPSAltitude => {
+                            data.gps_altitude = match &field.value {
+                                exif::Value::Rational(v) if !v.is_empty() => Some(v[0].to_f64()),
+                                exif::Value::SRational(v) if !v.is_empty() => Some(v[0].to_f64()),
+                                _ => field.value.get_uint(0).map(|u| u as f64),
+                            };
+                        }
+                        exif::Tag::GPSDateStamp => {
+                            data.gps_date_time = Some(field.display_value().to_string());
+                        }
+                        _ => {}
+                    }
                 }
             }
         }
@@ -172,12 +191,12 @@ impl ExifParser {
         Ok(data)
     }
 
-    fn parse_gps_coordinate(&self, entry: &exif::ExifValue) -> Option<f64> {
-        entry.get_rational().ok().and_then(|r| {
-            // EXIF GPS is stored as [degrees, minutes, seconds]
-            // We just return a rough approximation
-            Some(r.to_f64())
-        })
+    fn parse_gps_coordinate(&self, value: &exif::Value) -> Option<f64> {
+        match value {
+            exif::Value::Rational(v) if !v.is_empty() => Some(v[0].to_f64()),
+            exif::Value::SRational(v) if !v.is_empty() => Some(v[0].to_f64()),
+            _ => value.get_uint(0).map(|u| u as f64),
+        }
     }
 
     /// Fallback: uses exiftool CLI if available on the system.
