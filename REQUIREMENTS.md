@@ -34,10 +34,10 @@ To ensure the UI remains snappy with large libraries, images are processed in th
 
 ### D. AI Upscaling (Python Bridge)
 *   **Integration:** A Rust-to-Python bridge that spawns a subprocess to run external AI upscaling scripts (e.g., Real-ESRGAN).
-*   **Workflow:** User selects image -> Rust spawns Python script -> Script processes image -> Rust updates UI with success status.
+*   **Workflow:** User selects image and desired image size -> Rust spawns Python script -> Script processes image -> Rust updates UI with success status.
 
 ## 4. UI/UX Guidelines
-*   **Style:** "Lightroom Cloud" aesthetic. Clean, dark-mode default, minimal chrome.
+*   **Style:** "Lightroom Cloud" aesthetic. Clean, dark-mode default, minimal chrome. See a design mockup at [design/mockups/00000-4162059048.png].
 *   **Layout:**
     *   **Left:** Sidebar for Folders/Albums.
     *   **Center:** Photo Grid (Virtual Scrolling).
