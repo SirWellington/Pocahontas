@@ -164,14 +164,23 @@ impl CatalogManager {
         let file_hash = self.compute_file_hash(file_path)?;
 
         // Parse EXIF metadata
-        let exif = self.exif_parser.parse(file_path).unwrap_or_default();
+        let exif = self.exif_parser
+            .parse(file_path)
+            .unwrap_or_default();
 
         // Insert image record
         let result = sqlx::query!(
             r#"
             INSERT INTO images (
-                folder_id, file_path, file_name, file_extension,
-                file_size_bytes, width, height, date_taken, file_hash
+                folder_id, 
+                file_path, 
+                file_name, 
+                file_extension,
+                file_size_bytes,
+                width, 
+                height, 
+                date_taken, 
+                file_hash
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             "#,
             folder_id,
@@ -193,9 +202,18 @@ impl CatalogManager {
         sqlx::query!(
             r#"
             INSERT INTO exif_data (
-                image_id, camera_make, camera_model, lens_model,
-                iso, aperture_f_number, shutter_speed_num, shutter_speed_den,
-                focal_length_mm, gps_latitude, gps_longitude, gps_altitude
+                image_id, 
+                camera_make, 
+                camera_model, 
+                lens_model,
+                iso, 
+                aperture_f_number,
+                shutter_speed_num, 
+                shutter_speed_den,
+                focal_length_mm, 
+                gps_latitude, 
+                gps_longitude, 
+                gps_altitude
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             "#,
             image_id,
@@ -257,7 +275,11 @@ impl CatalogManager {
     ) -> Result<()> {
         sqlx::query!(
             r#"
-            INSERT INTO processing_queue (image_id, task_type, priority)
+            INSERT INTO processing_queue (
+              image_id, 
+              task_type, 
+              priority
+            )
             VALUES (?, 'thumbnail', 10)
             "#,
             image_id,
@@ -269,7 +291,11 @@ impl CatalogManager {
         // Also queue smart preview
         sqlx::query!(
             r#"
-            INSERT INTO processing_queue (image_id, task_type, priority)
+            INSERT INTO processing_queue (
+                image_id, 
+                task_type, 
+                priority
+            )
             VALUES (?, 'preview', 5)
             "#,
             image_id,
@@ -298,10 +324,22 @@ impl CatalogManager {
 
         let images = sqlx::query_as::<_, ImageRecord>(
             r#"
-            SELECT id, folder_id, file_path, file_name, file_extension,
-                   file_size_bytes, width, height, date_taken, date_imported,
-                   has_thumbnail, has_preview, rating, is_favorite,
-                   faces_indexed, is_missing
+            SELECT id, 
+                   folder_id, 
+                   file_path, 
+                   file_name, 
+                   file_extension,
+                   file_size_bytes, 
+                   width, 
+                   height, 
+                   date_taken, 
+                   date_imported,
+                   has_thumbnail, 
+                   has_preview, 
+                   rating, 
+                   is_favorite,
+                   faces_indexed, 
+                   is_missing
             FROM images
             WHERE is_archived = 0
               AND ($1 IS NULL OR rating = $1)

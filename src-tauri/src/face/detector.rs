@@ -202,7 +202,14 @@ pub async fn store_faces(
     for det in detections {
         sqlx::query!(
             r#"
-            INSERT INTO faces (image_id, bbox_x, bbox_y, bbox_width, bbox_height, confidence)
+            INSERT INTO faces (
+                image_id, 
+                bbox_x, 
+                bbox_y, 
+                bbox_width, 
+                bbox_height, 
+                confidence
+            )
             VALUES (?, ?, ?, ?, ?, ?)
             "#,
             image_id,
@@ -230,7 +237,12 @@ pub async fn store_faces(
 /// Triggers a full face re-index of all images that haven't been indexed yet.
 pub async fn rebuild_face_index(pool: &SqlitePool, detector: &FaceDetector) -> Result<()> {
     let unindexed: Vec<String> = sqlx::query_scalar!(
-        "SELECT file_path FROM images WHERE faces_indexed = 0 AND is_missing = 0"
+        r#"
+        SELECT file_path 
+        FROM images 
+        WHERE faces_indexed = 0 
+            AND is_missing = 0
+        "#
     )
     .fetch_all(pool)
     .await?

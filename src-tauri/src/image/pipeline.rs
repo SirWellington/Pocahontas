@@ -20,7 +20,7 @@ const THUMB_QUALITY: u8 = 75;
 const PREVIEW_QUALITY: u8 = 85;
 
 /// Maximum concurrent image processing tasks.
-const MAX_CONCURRENT_TASKS: usize = 4;
+const MAX_CONCURRENT_TASKS: usize = 8;
 
 /// Represents a queued image processing job.
 #[derive(Debug, Clone)]
@@ -216,7 +216,12 @@ impl ImagePipeline {
         match result {
             Ok(_) => {
                 sqlx::query!(
-                    "UPDATE images SET has_preview = 1, preview_hash = ? WHERE id = ?",
+                    r#"
+                    UPDATE images 
+                    SET has_preview = 1, 
+                        preview_hash = ? 
+                    WHERE id = ?
+                    "#,
                     output_path.file_name().unwrap().to_string_lossy(),
                     image_id,
                 )
