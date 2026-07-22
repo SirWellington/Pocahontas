@@ -24,14 +24,13 @@ export interface ExifData {
   camera_model: string | null;
   lens_model: string | null;
   iso: number | null;
-  aperture: number | null;
+  aperture_f_number: number | null;
   shutter_speed_num: number | null;
   shutter_speed_den: number | null;
-  focal_length: number | null;
+  focal_length_mm: number | null;
   gps_latitude: number | null;
   gps_longitude: number | null;
   gps_altitude: number | null;
-  date_time_original: string | null;
 }
 
 export interface FolderRecord {
@@ -43,7 +42,7 @@ export interface FolderRecord {
   is_watched: boolean;
 }
 
-export interface FaceDetection {
+export interface FaceRecord {
   id: number;
   image_id: number;
   person_id: number | null;
@@ -54,11 +53,35 @@ export interface FaceDetection {
   confidence: number;
 }
 
-export interface Person {
+export interface PersonRecord {
   id: number;
   name: string;
   created_at: string;
   updated_at: string;
+  face_count: number;
+}
+
+export interface TagRecord {
+  id: number;
+  name: string;
+  color: string | null;
+}
+
+export interface AlbumRecord {
+  id: number;
+  name: string;
+  description: string | null;
+  created_at: string;
+}
+
+export interface CatalogStats {
+  total_images: number;
+  total_faces: number;
+  total_people: number;
+  total_folders: number;
+  total_tags: number;
+  unindexed_faces: number;
+  missing_files: number;
 }
 
 export interface CatalogState {
