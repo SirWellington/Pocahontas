@@ -13,7 +13,7 @@ Prompt: "Create a React layout using Tailwind CSS that mimics Lightroom's dark m
 Prompt: "Implement the Rust backend logic to scan a directory and save paths to SQLite."
 
 ## Iteration B
-Prompt: Implement the libvips background worker to generate thumbnails and smart previews."
+Prompt: "Implement the libvips background worker to generate thumbnails and smart previews."
 
 ## Iteration C
 Prompt: "Integrate ONNX Runtime for face detection using GPU acceleration."

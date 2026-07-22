@@ -66,7 +66,11 @@ impl CatalogManager {
         fs::create_dir_all(&cache_dir).context("Failed to create cache directory")?;
 
         let exif_parser = ExifParser::new();
-        let image_pipeline = ImagePipeline::new(cache_dir.clone());
+        let pool = db.pool();
+        let mut image_pipeline = ImagePipeline::new(cache_dir.clone());
+
+        // Start the background worker with a cloned pool
+        image_pipeline.start(pool.clone());
 
         Ok(Self {
             db,
