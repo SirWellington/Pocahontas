@@ -1,0 +1,985 @@
+{
+  "database": {
+    "data": [
+      {
+        "name": "",
+        "tables": {
+          "_migrations": {
+            "columns": {
+              "id": {
+                "name": "id",
+                "ordinal": 0,
+                "method": "Auto",
+                "type_info": "INTEGER"
+              },
+              "name": {
+                "name": "name",
+                "ordinal": 1,
+                "method": "Normal",
+                "type_info": "TEXT"
+              },
+              "applied_at": {
+                "name": "applied_at",
+                "ordinal": 2,
+                "method": "Normal",
+                "type_info": "TEXT"
+              }
+            },
+            "foreign_keys": [],
+            "indices": [
+              {
+                "name": "sqlite_autoindex__migrations_1",
+                "unique": true,
+                "origin": "u",
+                "columns": [
+                  "name"
+                ]
+              }
+            ],
+            "primary_key": {
+              "columns": [
+                "id"
+              ],
+              "custom_ordering": false
+            },
+            "strict": false
+          },
+          "folders": {
+            "columns": {
+              "id": {
+                "name": "id",
+                "ordinal": 0,
+                "method": "Auto",
+                "type_info": "INTEGER"
+              },
+              "path": {
+                "name": "path",
+                "ordinal": 1,
+                "method": "Normal",
+                "type_info": "TEXT"
+              },
+              "name": {
+                "name": "name",
+                "ordinal": 2,
+                "method": "Normal",
+                "type_info": "TEXT"
+              },
+              "parent_id": {
+                "name": "parent_id",
+                "ordinal": 3,
+                "method": "Normal",
+                "type_info": "INTEGER"
+              },
+              "date_added": {
+                "name": "date_added",
+                "ordinal": 4,
+                "method": "Normal",
+                "type_info": "TEXT"
+              },
+              "date_modified": {
+                "name": "date_modified",
+                "ordinal": 5,
+                "method": "Normal",
+                "type_info": "TEXT"
+              },
+              "is_watched": {
+                "name": "is_watched",
+                "ordinal": 6,
+                "method": "Normal",
+                "type_info": "INTEGER"
+              }
+            },
+            "foreign_keys": [
+              {
+                "old_table": "folders",
+                "old_columns": [
+                  "parent_id"
+                ],
+                "new_table": "folders",
+                "new_columns": [
+                  "id"
+                ],
+                "on_delete": "SET NULL",
+                "on_update": "NO ACTION"
+              }
+            ],
+            "indices": [
+              {
+                "name": "idx_folders_path",
+                "unique": true,
+                "origin": "d",
+                "columns": [
+                  "path"
+                ]
+              }
+            ],
+            "primary_key": {
+              "columns": [
+                "id"
+              ],
+              "custom_ordering": false
+            },
+            "strict": false
+          },
+          "images": {
+            "columns": {
+              "id": {
+                "name": "id",
+                "ordinal": 0,
+                "method": "Auto",
+                "type_info": "INTEGER"
+              },
+              "folder_id": {
+                "name": "folder_id",
+                "ordinal": 1,
+                "method": "Normal",
+                "type_info": "INTEGER"
+              },
+              "file_path": {
+                "name": "file_path",
+                "ordinal": 2,
+                "method": "Normal",
+                "type_info": "TEXT"
+              },
+              "file_name": {
+                "name": "file_name",
+                "ordinal": 3,
+                "method": "Normal",
+                "type_info": "TEXT"
+              },
+              "file_extension": {
+                "name": "file_extension",
+                "ordinal": 4,
+                "method": "Normal",
+                "type_info": "TEXT"
+              },
+              "file_size_bytes": {
+                "name": "file_size_bytes",
+                "ordinal": 5,
+                "method": "Normal",
+                "type_info": "INTEGER"
+              },
+              "width": {
+                "name": "width",
+                "ordinal": 6,
+                "method": "Normal",
+                "type_info": "INTEGER"
+              },
+              "height": {
+                "name": "height",
+                "ordinal": 7,
+                "method": "Normal",
+                "type_info": "INTEGER"
+              },
+              "date_taken": {
+                "name": "date_taken",
+                "ordinal": 8,
+                "method": "Normal",
+                "type_info": "TEXT"
+              },
+              "date_modified": {
+                "name": "date_modified",
+                "ordinal": 9,
+                "method": "Normal",
+                "type_info": "TEXT"
+              },
+              "date_imported": {
+                "name": "date_imported",
+                "ordinal": 10,
+                "method": "Normal",
+                "type_info": "TEXT"
+              },
+              "thumbnail_hash": {
+                "name": "thumbnail_hash",
+                "ordinal": 11,
+                "method": "Normal",
+                "type_info": "TEXT"
+              },
+              "preview_hash": {
+                "name": "preview_hash",
+                "ordinal": 12,
+                "method": "Normal",
+                "type_info": "TEXT"
+              },
+              "has_thumbnail": {
+                "name": "has_thumbnail",
+                "ordinal": 13,
+                "method": "Normal",
+                "type_info": "INTEGER"
+              },
+              "has_preview": {
+                "name": "has_preview",
+                "ordinal": 14,
+                "method": "Normal",
+                "type_info": "INTEGER"
+              },
+              "rating": {
+                "name": "rating",
+                "ordinal": 15,
+                "method": "Normal",
+                "type_info": "INTEGER"
+              },
+              "is_favorite": {
+                "name": "is_favorite",
+                "ordinal": 16,
+                "method": "Normal",
+                "type_info": "INTEGER"
+              },
+              "is_archived": {
+                "name": "is_archived",
+                "ordinal": 17,
+                "method": "Normal",
+                "type_info": "INTEGER"
+              },
+              "caption": {
+                "name": "caption",
+                "ordinal": 18,
+                "method": "Normal",
+                "type_info": "TEXT"
+              },
+              "color_label": {
+                "name": "color_label",
+                "ordinal": 19,
+                "method": "Normal",
+                "type_info": "TEXT"
+              },
+              "faces_indexed": {
+                "name": "faces_indexed",
+                "ordinal": 20,
+                "method": "Normal",
+                "type_info": "INTEGER"
+              },
+              "file_hash": {
+                "name": "file_hash",
+                "ordinal": 21,
+                "method": "Normal",
+                "type_info": "TEXT"
+              },
+              "is_missing": {
+                "name": "is_missing",
+                "ordinal": 22,
+                "method": "Normal",
+                "type_info": "INTEGER"
+              }
+            },
+            "foreign_keys": [
+              {
+                "old_table": "images",
+                "old_columns": [
+                  "folder_id"
+                ],
+                "new_table": "folders",
+                "new_columns": [
+                  "id"
+                ],
+                "on_delete": "SET NULL",
+                "on_update": "NO ACTION"
+              }
+            ],
+            "indices": [
+              {
+                "name": "idx_images_folder_id",
+                "unique": false,
+                "origin": "d",
+                "columns": [
+                  "folder_id"
+                ]
+              },
+              {
+                "name": "idx_images_date_taken",
+                "unique": false,
+                "origin": "d",
+                "columns": [
+                  "date_taken"
+                ]
+              },
+              {
+                "name": "idx_images_rating",
+                "unique": false,
+                "origin": "d",
+                "columns": [
+                  "rating"
+                ]
+              },
+              {
+                "name": "idx_images_file_path",
+                "unique": true,
+                "origin": "d",
+                "columns": [
+                  "file_path"
+                ]
+              },
+              {
+                "name": "idx_images_faces_indexed",
+                "unique": false,
+                "origin": "d",
+                "columns": [
+                  "faces_indexed"
+                ]
+              },
+              {
+                "name": "idx_images_is_missing",
+                "unique": false,
+                "origin": "d",
+                "columns": [
+                  "is_missing"
+                ]
+              }
+            ],
+            "primary_key": {
+              "columns": [
+                "id"
+              ],
+              "custom_ordering": false
+            },
+            "strict": false
+          },
+          "exif_data": {
+            "columns": {
+              "id": {
+                "name": "id",
+                "ordinal": 0,
+                "method": "Auto",
+                "type_info": "INTEGER"
+              },
+              "image_id": {
+                "name": "image_id",
+                "ordinal": 1,
+                "method": "Normal",
+                "type_info": "INTEGER"
+              },
+              "camera_make": {
+                "name": "camera_make",
+                "ordinal": 2,
+                "method": "Normal",
+                "type_info": "TEXT"
+              },
+              "camera_model": {
+                "name": "camera_model",
+                "ordinal": 3,
+                "method": "Normal",
+                "type_info": "TEXT"
+              },
+              "lens_model": {
+                "name": "lens_model",
+                "ordinal": 4,
+                "method": "Normal",
+                "type_info": "TEXT"
+              },
+              "software": {
+                "name": "software",
+                "ordinal": 5,
+                "method": "Normal",
+                "type_info": "TEXT"
+              },
+              "iso": {
+                "name": "iso",
+                "ordinal": 6,
+                "method": "Normal",
+                "type_info": "INTEGER"
+              },
+              "aperture_f_number": {
+                "name": "aperture_f_number",
+                "ordinal": 7,
+                "method": "Normal",
+                "type_info": "REAL"
+              },
+              "shutter_speed_num": {
+                "name": "shutter_speed_num",
+                "ordinal": 8,
+                "method": "Normal",
+                "type_info": "INTEGER"
+              },
+              "shutter_speed_den": {
+                "name": "shutter_speed_den",
+                "ordinal": 9,
+                "method": "Normal",
+                "type_info": "INTEGER"
+              },
+              "focal_length_mm": {
+                "name": "focal_length_mm",
+                "ordinal": 10,
+                "method": "Normal",
+                "type_info": "REAL"
+              },
+              "flash_fired": {
+                "name": "flash_fired",
+                "ordinal": 11,
+                "method": "Normal",
+                "type_info": "INTEGER"
+              },
+              "exposure_mode": {
+                "name": "exposure_mode",
+                "ordinal": 12,
+                "method": "Normal",
+                "type_info": "TEXT"
+              },
+              "white_balance": {
+                "name": "white_balance",
+                "ordinal": 13,
+                "method": "Normal",
+                "type_info": "TEXT"
+              },
+              "orientation": {
+                "name": "orientation",
+                "ordinal": 14,
+                "method": "Normal",
+                "type_info": "INTEGER"
+              },
+              "bits_per_sample": {
+                "name": "bits_per_sample",
+                "ordinal": 15,
+                "method": "Normal",
+                "type_info": "INTEGER"
+              },
+              "color_space": {
+                "name": "color_space",
+                "ordinal": 16,
+                "method": "Normal",
+                "type_info": "TEXT"
+              },
+              "gps_latitude": {
+                "name": "gps_latitude",
+                "ordinal": 17,
+                "method": "Normal",
+                "type_info": "REAL"
+              },
+              "gps_longitude": {
+                "name": "gps_longitude",
+                "ordinal": 18,
+                "method": "Normal",
+                "type_info": "REAL"
+              },
+              "gps_altitude": {
+                "name": "gps_altitude",
+                "ordinal": 19,
+                "method": "Normal",
+                "type_info": "REAL"
+              },
+              "gps_date_time": {
+                "name": "gps_date_time",
+                "ordinal": 20,
+                "method": "Normal",
+                "type_info": "TEXT"
+              }
+            },
+            "foreign_keys": [
+              {
+                "old_table": "exif_data",
+                "old_columns": [
+                  "image_id"
+                ],
+                "new_table": "images",
+                "new_columns": [
+                  "id"
+                ],
+                "on_delete": "CASCADE",
+                "on_update": "NO ACTION"
+              }
+            ],
+            "indices": [
+              {
+                "name": "idx_exif_camera_model",
+                "unique": false,
+                "origin": "d",
+                "columns": [
+                  "camera_model"
+                ]
+              },
+              {
+                "name": "idx_exif_lens_model",
+                "unique": false,
+                "origin": "d",
+                "columns": [
+                  "lens_model"
+                ]
+              },
+              {
+                "name": "idx_exif_iso",
+                "unique": false,
+                "origin": "d",
+                "columns": [
+                  "iso"
+                ]
+              },
+              {
+                "name": "idx_exif_gps_lat",
+                "unique": false,
+                "origin": "d",
+                "columns": [
+                  "gps_latitude"
+                ]
+              },
+              {
+                "name": "idx_exif_gps_lon",
+                "unique": false,
+                "origin": "d",
+                "columns": [
+                  "gps_longitude"
+                ]
+              }
+            ],
+            "primary_key": {
+              "columns": [
+                "id"
+              ],
+              "custom_ordering": false
+            },
+            "strict": false
+          },
+          "people": {
+            "columns": {
+              "id": {
+                "name": "id",
+                "ordinal": 0,
+                "method": "Auto",
+                "type_info": "INTEGER"
+              },
+              "name": {
+                "name": "name",
+                "ordinal": 1,
+                "method": "Normal",
+                "type_info": "TEXT"
+              },
+              "created_at": {
+                "name": "created_at",
+                "ordinal": 2,
+                "method": "Normal",
+                "type_info": "TEXT"
+              },
+              "updated_at": {
+                "name": "updated_at",
+                "ordinal": 3,
+                "method": "Normal",
+                "type_info": "TEXT"
+              },
+              "embedding": {
+                "name": "embedding",
+                "ordinal": 4,
+                "method": "Normal",
+                "type_info": "BLOB"
+              }
+            },
+            "foreign_keys": [],
+            "indices": [
+              {
+                "name": "idx_people_name",
+                "unique": false,
+                "origin": "d",
+                "columns": [
+                  "name"
+                ]
+              }
+            ],
+            "primary_key": {
+              "columns": [
+                "id"
+              ],
+              "custom_ordering": false
+            },
+            "strict": false
+          },
+          "faces": {
+            "columns": {
+              "id": {
+                "name": "id",
+                "ordinal": 0,
+                "method": "Auto",
+                "type_info": "INTEGER"
+              },
+              "image_id": {
+                "name": "image_id",
+                "ordinal": 1,
+                "method": "Normal",
+                "type_info": "INTEGER"
+              },
+              "person_id": {
+                "name": "person_id",
+                "ordinal": 2,
+                "method": "Normal",
+                "type_info": "INTEGER"
+              },
+              "bbox_x": {
+                "name": "bbox_x",
+                "ordinal": 3,
+                "method": "Normal",
+                "type_info": "REAL"
+              },
+              "bbox_y": {
+                "name": "bbox_y",
+                "ordinal": 4,
+                "method": "Normal",
+                "type_info": "REAL"
+              },
+              "bbox_width": {
+                "name": "bbox_width",
+                "ordinal": 5,
+                "method": "Normal",
+                "type_info": "REAL"
+              },
+              "bbox_height": {
+                "name": "bbox_height",
+                "ordinal": 6,
+                "method": "Normal",
+                "type_info": "REAL"
+              },
+              "confidence": {
+                "name": "confidence",
+                "ordinal": 7,
+                "method": "Normal",
+                "type_info": "REAL"
+              },
+              "embedding": {
+                "name": "embedding",
+                "ordinal": 8,
+                "method": "Normal",
+                "type_info": "BLOB"
+              },
+              "face_thumbnail": {
+                "name": "face_thumbnail",
+                "ordinal": 9,
+                "method": "Normal",
+                "type_info": "TEXT"
+              },
+              "created_at": {
+                "name": "created_at",
+                "ordinal": 10,
+                "method": "Normal",
+                "type_info": "TEXT"
+              }
+            },
+            "foreign_keys": [
+              {
+                "old_table": "faces",
+                "old_columns": [
+                  "image_id"
+                ],
+                "new_table": "images",
+                "new_columns": [
+                  "id"
+                ],
+                "on_delete": "CASCADE",
+                "on_update": "NO ACTION"
+              },
+              {
+                "old_table": "faces",
+                "old_columns": [
+                  "person_id"
+                ],
+                "new_table": "people",
+                "new_columns": [
+                  "id"
+                ],
+                "on_delete": "SET NULL",
+                "on_update": "NO ACTION"
+              }
+            ],
+            "indices": [
+              {
+                "name": "idx_faces_image_id",
+                "unique": false,
+                "origin": "d",
+                "columns": [
+                  "image_id"
+                ]
+              },
+              {
+                "name": "idx_faces_person_id",
+                "unique": false,
+                "origin": "d",
+                "columns": [
+                  "person_id"
+                ]
+              }
+            ],
+            "primary_key": {
+              "columns": [
+                "id"
+              ],
+              "custom_ordering": false
+            },
+            "strict": false
+          },
+          "tags": {
+            "columns": {
+              "id": {
+                "name": "id",
+                "ordinal": 0,
+                "method": "Auto",
+                "type_info": "INTEGER"
+              },
+              "name": {
+                "name": "name",
+                "ordinal": 1,
+                "method": "Normal",
+                "type_info": "TEXT"
+              },
+              "color": {
+                "name": "color",
+                "ordinal": 2,
+                "method": "Normal",
+                "type_info": "TEXT"
+              }
+            },
+            "foreign_keys": [],
+            "indices": [],
+            "primary_key": {
+              "columns": [
+                "id"
+              ],
+              "custom_ordering": false
+            },
+            "strict": false
+          },
+          "image_tags": {
+            "columns": {
+              "image_id": {
+                "name": "image_id",
+                "ordinal": 0,
+                "method": "Normal",
+                "type_info": "INTEGER"
+              },
+              "tag_id": {
+                "name": "tag_id",
+                "ordinal": 1,
+                "method": "Normal",
+                "type_info": "INTEGER"
+              }
+            },
+            "foreign_keys": [
+              {
+                "old_table": "image_tags",
+                "old_columns": [
+                  "image_id"
+                ],
+                "new_table": "images",
+                "new_columns": [
+                  "id"
+                ],
+                "on_delete": "CASCADE",
+                "on_update": "NO ACTION"
+              },
+              {
+                "old_table": "image_tags",
+                "old_columns": [
+                  "tag_id"
+                ],
+                "new_table": "tags",
+                "new_columns": [
+                  "id"
+                ],
+                "on_delete": "CASCADE",
+                "on_update": "NO ACTION"
+              }
+            ],
+            "indices": [
+              {
+                "name": "idx_image_tags_tag_id",
+                "unique": false,
+                "origin": "d",
+                "columns": [
+                  "tag_id"
+                ]
+              }
+            ],
+            "primary_key": {
+              "columns": [
+                "image_id",
+                "tag_id"
+              ],
+              "custom_ordering": false
+            },
+            "strict": false
+          },
+          "albums": {
+            "columns": {
+              "id": {
+                "name": "id",
+                "ordinal": 0,
+                "method": "Auto",
+                "type_info": "INTEGER"
+              },
+              "name": {
+                "name": "name",
+                "ordinal": 1,
+                "method": "Normal",
+                "type_info": "TEXT"
+              },
+              "description": {
+                "name": "description",
+                "ordinal": 2,
+                "method": "Normal",
+                "type_info": "TEXT"
+              },
+              "created_at": {
+                "name": "created_at",
+                "ordinal": 3,
+                "method": "Normal",
+                "type_info": "TEXT"
+              }
+            },
+            "foreign_keys": [],
+            "indices": [],
+            "primary_key": {
+              "columns": [
+                "id"
+              ],
+              "custom_ordering": false
+            },
+            "strict": false
+          },
+          "album_images": {
+            "columns": {
+              "album_id": {
+                "name": "album_id",
+                "ordinal": 0,
+                "method": "Normal",
+                "type_info": "INTEGER"
+              },
+              "image_id": {
+                "name": "image_id",
+                "ordinal": 1,
+                "method": "Normal",
+                "type_info": "INTEGER"
+              }
+            },
+            "foreign_keys": [
+              {
+                "old_table": "album_images",
+                "old_columns": [
+                  "album_id"
+                ],
+                "new_table": "albums",
+                "new_columns": [
+                  "id"
+                ],
+                "on_delete": "CASCADE",
+                "on_update": "NO ACTION"
+              },
+              {
+                "old_table": "album_images",
+                "old_columns": [
+                  "image_id"
+                ],
+                "new_table": "images",
+                "new_columns": [
+                  "id"
+                ],
+                "on_delete": "CASCADE",
+                "on_update": "NO ACTION"
+              }
+            ],
+            "indices": [
+              {
+                "name": "idx_album_images_image_id",
+                "unique": false,
+                "origin": "d",
+                "columns": [
+                  "image_id"
+                ]
+              }
+            ],
+            "primary_key": {
+              "columns": [
+                "album_id",
+                "image_id"
+              ],
+              "custom_ordering": false
+            },
+            "strict": false
+          },
+          "processing_queue": {
+            "columns": {
+              "id": {
+                "name": "id",
+                "ordinal": 0,
+                "method": "Auto",
+                "type_info": "INTEGER"
+              },
+              "image_id": {
+                "name": "image_id",
+                "ordinal": 1,
+                "method": "Normal",
+                "type_info": "INTEGER"
+              },
+              "task_type": {
+                "name": "task_type",
+                "ordinal": 2,
+                "method": "Normal",
+                "type_info": "TEXT"
+              },
+              "status": {
+                "name": "status",
+                "ordinal": 3,
+                "method": "Normal",
+                "type_info": "TEXT"
+              },
+              "priority": {
+                "name": "priority",
+                "ordinal": 4,
+                "method": "Normal",
+                "type_info": "INTEGER"
+              },
+              "error_message": {
+                "name": "error_message",
+                "ordinal": 5,
+                "method": "Normal",
+                "type_info": "TEXT"
+              },
+              "created_at": {
+                "name": "created_at",
+                "ordinal": 6,
+                "method": "Normal",
+                "type_info": "TEXT"
+              },
+              "started_at": {
+                "name": "started_at",
+                "ordinal": 7,
+                "method": "Normal",
+                "type_info": "TEXT"
+              },
+              "completed_at": {
+                "name": "completed_at",
+                "ordinal": 8,
+                "method": "Normal",
+                "type_info": "TEXT"
+              }
+            },
+            "foreign_keys": [
+              {
+                "old_table": "processing_queue",
+                "old_columns": [
+                  "image_id"
+                ],
+                "new_table": "images",
+                "new_columns": [
+                  "id"
+                ],
+                "on_delete": "CASCADE",
+                "on_update": "NO ACTION"
+              }
+            ],
+            "indices": [
+              {
+                "name": "idx_queue_status",
+                "unique": false,
+                "origin": "d",
+                "columns": [
+                  "status",
+                  "priority"
+                ]
+              }
+            ],
+            "primary_key": {
+              "columns": [
+                "id"
+              ],
+              "custom_ordering": false
+            },
+            "strict": false
+          }
+        }
+      }
+    ]
+  }
+}

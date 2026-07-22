@@ -1,14 +1,14 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import { resolve } from "path";
+import { fileURLToPath, URL } from "node:url";
 
 // https://vitejs.dev/config/
-export default defineConfig(async () => ({
+export default defineConfig({
   plugins: [react()],
 
   resolve: {
     alias: {
-      "@": resolve(__dirname, "./src"),
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
     },
   },
 
@@ -28,7 +28,7 @@ export default defineConfig(async () => ({
   envDir: ".",
 
   build: {
-    outDir: "../dist",
+    outDir: "dist",
     target: process.env.TAURI_CI ? "es2019" : undefined,
     rollupOptions: {
       output: {
@@ -38,4 +38,4 @@ export default defineConfig(async () => ({
       },
     },
   },
-}));
+});

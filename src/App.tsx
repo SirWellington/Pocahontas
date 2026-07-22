@@ -1,117 +1,103 @@
-import React, { useState } from "react";
-import { open } from "@tauri-apps/plugin-dialog";
-import { useCatalogStore } from "../hooks/useCatalog";
-import GalleryGrid from "./GalleryGrid";
-import MetadataPanel from "./MetadataPanel";
+import { useState } from "react";
+import Toolbar from "@/components/Toolbar";
+import Sidebar from "@/components/Sidebar";
+import GalleryGrid from "@/components/GalleryGrid";
+import DetailsPanel from "@/components/DetailsPanel";
+import { useCatalogStore } from "@/hooks/useCatalog";
 
 const App: React.FC = () => {
-  const { path, isLoading, error, importDirectory, clearSelection } =
-    useCatalogStore();
-  const [showMetadata, setShowMetadata] = useState(true);
+  const { path, leftPanelVisible, rightPanelVisible } = useCatalogStore();
+  const [_catalogOpen, setCatalogOpen] = useState(false);
 
   const handleOpenCatalog = async () => {
-    const selected = await open({
-      multiple: false,
-      filters: [
-        {
-          name: "Praetorian Catalog",
-          extensions: ["praetorian"],
-        },
-      ],
-    });
-    if (selected) {
-      await useCatalogStore.getState().openCatalog(selected);
-    }
-  };
-
-  const handleImportDirectory = async () => {
-    const selected = await open({
-      directory: true,
-      multiple: false,
-    });
-    if (selected) {
-      await importDirectory(selected);
-    }
+    await useCatalogStore
+      .getState()
+      .openCatalog("/Users/moreno/Library/Praetorian/catalog.praetorian");
+    setCatalogOpen(true);
   };
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-gray-950">
-      {/* Top toolbar */}
-      <div className="toolbar">
-        <div className="flex items-center gap-2">
-          <svg className="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
-          </svg>
-          <span className="font-semibold text-sm">Praetorian</span>
-        </div>
+    <div className="h-screen w-screen flex flex-col bg-[#181818] overflow-hidden">
+      <Toolbar />
 
-        <div className="flex-1" />
-
-        {path && (
-          <>
-            <button className="btn-secondary" onClick={handleOpenCatalog}>
-              Open Catalog
-            </button>
-            <button className="btn-primary" onClick={handleImportDirectory}>
-              Import
-            </button>
-            <button
-              className="btn-secondary"
-              onClick={() => setShowMetadata(!showMetadata)}
-            >
-              {showMetadata ? "Hide" : "Show"} Details
-            </button>
-          </>
-        )}
-      </div>
-
-      {/* Main content area */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Gallery */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {!path ? (
-            <div className="flex-1 flex flex-col items-center justify-center gap-4">
-              <svg
-                className="w-16 h-16 text-gray-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                />
-              </svg>
-              <p className="text-gray-400 text-sm">
-                No catalog open. Create or open a catalog to get started.
-              </p>
-              <button className="btn-primary" onClick={handleOpenCatalog}>
-                Open Catalog
-              </button>
-            </div>
-          ) : isLoading ? (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-            </div>
-          ) : (
+      {path ? (
+        <div className="flex-1 flex overflow-hidden">
+          {leftPanelVisible && <Sidebar />}
+          <div className="flex-1 flex flex-col overflow-hidden">
             <GalleryGrid />
-          )}
+            <FilmStrip />
+          </div>
+          {rightPanelVisible && <DetailsPanel />}
         </div>
-
-        {/* Right metadata panel */}
-        {showMetadata && path && <MetadataPanel />}
-      </div>
-
-      {/* Error toast */}
-      {error && (
-        <div className="absolute bottom-4 right-4 bg-red-900/90 border border-red-700 text-red-100 px-4 py-2 rounded text-sm">
-          {error}
+      ) : (
+        <div className="flex-1 flex flex-col items-center justify-center gap-6 bg-[#181818]">
+          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center shadow-lg shadow-blue-900/30">
+            <span className="text-3xl font-bold text-white">P</span>
+          </div>
+          <div className="text-center">
+            <h1 className="text-xl font-semibold text-[#d4d4d4]">
+              Praetorian
+            </h1>
+            <p className="text-[13px] text-[#666] mt-1">
+              Local-first photo library & cataloging
+            </p>
+          </div>
+          <button
+            className="px-5 py-2 text-[13px] bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors font-medium shadow-md"
+            onClick={handleOpenCatalog}
+          >
+            Open Catalog
+          </button>
+          <p className="text-[11px] text-[#444]">
+            Or create a new .praetorian catalog file
+          </p>
         </div>
       )}
     </div>
   );
 };
+
+/**
+ * Bottom film strip showing thumbnails of currently loaded images.
+ * Acts as a quick navigation bar.
+ */
+function FilmStrip() {
+  const { images, selectedImageIds, selectImage, clearSelection } =
+    useCatalogStore();
+
+  return (
+    <div className="h-16 bg-[#1a1a1a] border-t border-[#2a2a2a] flex items-center px-2 gap-1 overflow-x-auto shrink-0">
+      {images.map((img) => (
+        <div
+          key={img.id}
+          className={`w-10 h-10 rounded shrink-0 cursor-pointer overflow-hidden transition-all ${
+            selectedImageIds.has(img.id)
+              ? "ring-1.5 ring-blue-500"
+              : "opacity-60 hover:opacity-100"
+          }`}
+          onClick={() => {
+            clearSelection();
+            selectImage(img.id);
+          }}
+        >
+          <MockThumb id={img.id} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function MockThumb({ id }: { id: number }) {
+  const hue1 = (id * 37) % 360;
+  const hue2 = (hue1 + 40 + (id * 13) % 60) % 360;
+  return (
+    <div
+      className="w-full h-full"
+      style={{
+        background: `linear-gradient(135deg, hsl(${hue1}, 15%, 20%), hsl(${hue2}, 20%, 25%))`,
+      }}
+    />
+  );
+}
 
 export default App;

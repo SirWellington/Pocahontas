@@ -1,17 +1,13 @@
-import React, { useCallback, useRef } from "react";
-import {
-  useVirtualizer,
-  Virtualizer,
-  VirtualItem,
-} from "@tanstack/react-virtual";
-import { useCatalogStore } from "../hooks/useCatalog";
-import Thumbnail from "./Thumbnail";
+import { useCallback, useRef } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
+import { useCatalogStore } from "@/hooks/useCatalog";
+import Thumbnail from "@/components/Thumbnail";
 
-const COLUMNS = 6;
-const ITEM_HEIGHT = 200;
+const COLUMNS = 5;
+const ITEM_HEIGHT = 180;
 
 const GalleryGrid: React.FC = () => {
-  const { images, selectedImageIds, selectImage, deselectImage } =
+  const { images, selectedImageIds, selectImage, deselectImage, clearSelection } =
     useCatalogStore();
 
   const parentRef = useRef<HTMLDivElement>(null);
@@ -23,25 +19,39 @@ const GalleryGrid: React.FC = () => {
     count: totalRows,
     getScrollElement: () => parentRef.current,
     estimateSize: () => ITEM_HEIGHT,
-    overscan: 5,
+    overscan: 10,
   });
 
   const handleSelect = useCallback(
-    (id: number) => {
-      if (selectedImageIds.has(id)) {
-        deselectImage(id);
+    (id: number, e: React.MouseEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        if (selectedImageIds.has(id)) {
+          deselectImage(id);
+        } else {
+          selectImage(id);
+        }
       } else {
+        clearSelection();
         selectImage(id);
       }
     },
-    [selectedImageIds, selectImage, deselectImage]
+    [selectedImageIds, selectImage, deselectImage, clearSelection]
   );
+
+  if (images.length === 0) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-[#181818]">
+        <p className="text-[13px] text-[#555]">No images in catalog</p>
+      </div>
+    );
+  }
 
   return (
     <div
       ref={parentRef}
-      className="w-full h-full overflow-auto"
+      className="w-full h-full overflow-auto bg-[#181818]"
       style={{ contain: "strict" }}
+      onClick={() => clearSelection()}
     >
       <div
         style={{
@@ -64,23 +74,28 @@ const GalleryGrid: React.FC = () => {
                 width: "100%",
                 height: virtualRow.size,
                 transform: `translateY(${virtualRow.start}px)`,
-                display: "flex",
-                gap: "4px",
-                padding: "4px",
               }}
             >
-              {rowImages.map((img) => (
-                <div
-                  key={img.id}
-                  style={{ flex: `0 0 calc((100% - ${4 * (COLUMNS - 1)}px) / ${COLUMNS})` }}
-                >
-                  <Thumbnail
-                    image={img}
-                    isSelected={selectedImageIds.has(img.id)}
-                    onSelect={handleSelect}
-                  />
-                </div>
-              ))}
+              <div
+                className="flex gap-1 p-1"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {rowImages.map((img) => (
+                  <div
+                    key={img.id}
+                    className="flex-1 min-w-0"
+                    style={{
+                      flex: `0 0 calc((100% - ${4 * (COLUMNS - 1)}px) / ${COLUMNS})`,
+                    }}
+                  >
+                    <Thumbnail
+                      image={img}
+                      isSelected={selectedImageIds.has(img.id)}
+                      onSelect={(id) => handleSelect(id, {} as React.MouseEvent)}
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
           );
         })}

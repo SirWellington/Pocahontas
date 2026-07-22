@@ -3,7 +3,7 @@ name = "praetorian"
 version = "0.1.0"
 description = "A high-performance, local-first photo library application"
 authors = ["RedRoma"]
-edition = "2026"
+edition = "2021"
 license = "BSL-1.1"
 
 [lib]
@@ -15,7 +15,7 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 # --- Tauri v2 ---
-tauri = { version = "2", features = ["shell-open"] }
+tauri = { version = "2" }
 tauri-plugin-log = "2"
 tauri-plugin-fs = "2"
 tauri-plugin-dialog = "2"
@@ -30,17 +30,17 @@ tokio = { version = "1", features = ["full"] }
 sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "sqlite", "chrono", "macros"] }
 
 # --- Image processing ---
-vips = { version = "0.25", default-features = false, features = ["libvips"] }
+vips = "0.1.0-alpha.5"
 image = "0.25"
 
 # --- EXIF / metadata parsing ---
-exif = "0.8"
+exif = { package = "kamadak-exif", version = "0.6" }
 
 # --- ONNX Runtime (GPU-accelerated face detection) ---
 # CUDA support enabled via the "cuda" feature.
 # "load-dynamic" loads CUDA libraries at runtime rather than link time.
-ort = { version = "2", features = ["cuda", "load-dynamic"] }
-ort-sys = "2"
+ort = { version = "2.0.0-rc.12", features = ["cuda", "load-dynamic"] }
+ort-sys = "2.0.0-rc.12"
 
 # --- UUID for hashed cache keys ---
 uuid = { version = "1", features = ["v4"] }

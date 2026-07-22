@@ -1,23 +1,25 @@
 import { create } from "zustand";
-import { ImageRecord, CatalogState } from "../types";
-import * as catalog from "../services/catalog";
+import { CatalogState, SidebarView, FolderRecord } from "@/types";
+import { generateMockImages, generateMockFolders } from "@/data/mock";
 
 interface CatalogStore extends CatalogState {
   selectedImageIds: Set<number>;
-  currentPage: number;
-  pageSize: number;
+  folders: FolderRecord[];
+  activeView: SidebarView;
+  leftPanelVisible: boolean;
+  rightPanelVisible: boolean;
 
-  // Actions
   openCatalog: (path: string) => Promise<void>;
   importDirectory: (dirPath: string) => Promise<number>;
-  loadImages: (page?: number) => Promise<void>;
   selectImage: (id: number) => void;
   deselectImage: (id: number) => void;
   clearSelection: () => void;
-  setPage: (page: number) => void;
+  setActiveView: (view: SidebarView) => void;
+  toggleLeftPanel: () => void;
+  toggleRightPanel: () => void;
+  updateRating: (id: number, rating: number) => void;
+  toggleFavorite: (id: number) => void;
 }
-
-const PAGE_SIZE = 60;
 
 export const useCatalogStore = create<CatalogStore>((set, get) => ({
   path: null,
@@ -26,61 +28,39 @@ export const useCatalogStore = create<CatalogStore>((set, get) => ({
   isLoading: false,
   error: null,
   selectedImageIds: new Set(),
-  currentPage: 0,
-  pageSize: PAGE_SIZE,
+  folders: [],
+  activeView: "library",
+  leftPanelVisible: true,
+  rightPanelVisible: true,
 
   openCatalog: async (path: string) => {
     set({ isLoading: true, error: null });
-    try {
-      await catalog.openCatalog(path);
-      set({ path, isLoading: false });
-      await get().loadImages(0);
-    } catch (e) {
-      set({
-        error: e instanceof Error ? e.message : "Failed to open catalog",
-        isLoading: false,
-      });
-    }
+    // Simulate async load
+    await new Promise((r) => setTimeout(r, 300));
+    const images = generateMockImages(60);
+    const folders = generateMockFolders();
+    set({
+      path,
+      images,
+      totalImages: images.length,
+      folders,
+      isLoading: false,
+    });
   },
 
-  importDirectory: async (dirPath: string) => {
-    set({ isLoading: true, error: null });
-    try {
-      const imported = await catalog.importDirectory(dirPath);
-      set({ isLoading: false });
-      await get().loadImages(0);
-      return imported;
-    } catch (e) {
-      set({
-        error: e instanceof Error ? e.message : "Import failed",
-        isLoading: false,
-      });
-      throw e;
-    }
-  },
-
-  loadImages: async (page?: number) => {
-    const { currentPage, pageSize } = get();
-    const targetPage = page ?? currentPage;
-    set({ isLoading: true });
-
-    try {
-      const [images, total] = await Promise.all([
-        catalog.listImages(targetPage * pageSize, pageSize),
-        catalog.countImages(),
-      ]);
-      set({
-        images,
-        totalImages: total,
-        currentPage: targetPage,
-        isLoading: false,
-      });
-    } catch (e) {
-      set({
-        error: e instanceof Error ? e.message : "Failed to load images",
-        isLoading: false,
-      });
-    }
+  importDirectory: async (_dirPath: string) => {
+    await new Promise((r) => setTimeout(r, 500));
+    const current = get().images;
+    const newImages = generateMockImages(12).map((img, i) => ({
+      ...img,
+      id: current.length + i + 1,
+    }));
+    const updated = [...current, ...newImages];
+    set({
+      images: updated,
+      totalImages: updated.length,
+    });
+    return newImages.length;
   },
 
   selectImage: (id: number) => {
@@ -101,8 +81,31 @@ export const useCatalogStore = create<CatalogStore>((set, get) => ({
     set({ selectedImageIds: new Set() });
   },
 
-  setPage: (page: number) => {
-    set({ currentPage: page });
-    get().loadImages(page);
+  setActiveView: (view: SidebarView) => {
+    set({ activeView: view });
+  },
+
+  toggleLeftPanel: () => {
+    set((s) => ({ leftPanelVisible: !s.leftPanelVisible }));
+  },
+
+  toggleRightPanel: () => {
+    set((s) => ({ rightPanelVisible: !s.rightPanelVisible }));
+  },
+
+  updateRating: (id: number, rating: number) => {
+    set((s) => ({
+      images: s.images.map((img) =>
+        img.id === id ? { ...img, rating } : img
+      ),
+    }));
+  },
+
+  toggleFavorite: (id: number) => {
+    set((s) => ({
+      images: s.images.map((img) =>
+        img.id === id ? { ...img, is_favorite: !img.is_favorite } : img
+      ),
+    }));
   },
 }));
