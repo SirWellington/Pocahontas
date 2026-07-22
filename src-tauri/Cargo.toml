@@ -70,7 +70,7 @@ chrono = { version = "0.4", features = ["serde"] }
 duct = "0.13"
 
 [features]
-default = ["custom-protocol", "vips"]
+default = ["custom-protocol"]
 custom-protocol = ["tauri/custom-protocol"]
 vips = ["dep:vips", "dep:vips-sys"]
 face-detection = ["dep:ort", "dep:ort-sys"]

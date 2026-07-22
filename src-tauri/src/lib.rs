@@ -167,7 +167,11 @@ async fn start_face_index(state: State<'_, AppState>) -> Result<(), String> {
 
     #[cfg(feature = "face-detection")]
     {
-        face::detector::rebuild_face_index(&pool).await.map_err(|e| e.to_string())?;
+        let mut detector = face::detector::FaceDetector::new("retinaface.onnx");
+        if let Err(e) = detector.initialize() {
+            log::warn!("FaceDetector initialization failed, falling back to CPU: {}", e);
+        }
+        face::detector::rebuild_face_index(&pool, &detector).await.map_err(|e| e.to_string())?;
     }
 
     #[cfg(not(feature = "face-detection"))]

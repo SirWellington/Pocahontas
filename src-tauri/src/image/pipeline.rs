@@ -446,9 +446,10 @@ impl ImagePipeline {
         max_dim: u32,
         quality: u8,
     ) -> Result<()> {
-        use image::GenericImageView;
+        use image::codecs::jpeg::JpegEncoder;
+        use image::{ExtendedColorType, GenericImageView, ImageEncoder, ImageReader};
 
-        let img = image::open(input)?;
+        let img = ImageReader::open(input)?.decode()?;
         let (w, h) = img.dimensions();
 
         let scale = if w > h {
@@ -457,26 +458,26 @@ impl ImagePipeline {
             max_dim as f64 / h as f64
         };
 
-        if scale >= 1.0 {
-            let dynamic = dynamic_image_to_rgb8(img);
-            let mut buf = Vec::new();
-            dynamic.write_jpeg(&mut buf, quality)?;
-            std::fs::write(output, buf)?;
+        let rgb8 = if scale >= 1.0 {
+            img.into_rgb8()
         } else {
             let new_w = (w as f64 * scale).max(1.0) as u32;
             let new_h = (h as f64 * scale).max(1.0) as u32;
-            let resized = img.resize(new_w, new_h, image::imageops::FilterType::Lanczos3);
-            let dynamic = dynamic_image_to_rgb8(resized);
-            let mut buf = Vec::new();
-            dynamic.write_jpeg(&mut buf, quality)?;
-            std::fs::write(output, buf)?;
-        }
+            img.resize(new_w, new_h, image::imageops::FilterType::Lanczos3)
+                .into_rgb8()
+        };
+
+        let (out_w, out_h) = rgb8.dimensions();
+        let mut buf = Vec::new();
+        let encoder = JpegEncoder::new_with_quality(&mut buf, quality);
+        encoder.write_image(
+            rgb8.as_raw(),
+            out_w,
+            out_h,
+            ExtendedColorType::Rgb8,
+        )?;
+        std::fs::write(output, buf)?;
 
         Ok(())
     }
-}
-
-/// Converts a Dynamic image to RGB8 for consistent JPEG encoding.
-fn dynamic_image_to_rgb8(img: image::DynamicImage) -> image::RgbImage {
-    img.into_rgb8()
 }
