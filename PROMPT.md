@@ -78,3 +78,147 @@ Please provide:
 4. **Python Bridge Skeleton:** A basic example of how the Rust backend would call a Python script to upscale an image and return the result path.
 
 Start by defining the `Cargo.toml` dependencies required for GPU-accelerated AI and libvips, then outline the core database schema.
+
+
+---
+ 
+# Design Mockups
+
+```
+Create a high-fidelity desktop application UI mockup for a professional photo management application named "Praetorian."
+
+Design language:
+- Modern, premium creative software
+- Dark mode
+- Inspired by Lightroom Cloud, Capture One, Arc Browser, and Linear
+- Matte charcoal interface (#181818 to #222222)
+- Soft elevation with subtle shadows
+- 8px spacing system
+- Rounded corners (8px)
+- Thin separators instead of heavy borders
+- Clean typography similar to Inter or SF Pro
+- Pixel-perfect alignment
+- Production-quality Figma design
+- Extremely polished UX
+- No futuristic or glass-heavy effects
+
+Window:
+- Native desktop application
+- 16:10 aspect ratio
+- Large 1440p workspace
+- macOS-style window chrome
+- Professional creative application
+
+Layout:
+Left Sidebar
+- Library
+- Collections
+- Favorites
+- Recent Imports
+- External Drives
+- Folder tree
+- Smart Albums
+- Collapsible sections
+- Clean monochrome icons
+
+Center Workspace
+- Primary content area
+- Dense but elegant layout
+- Excellent spacing
+- Strong visual hierarchy
+
+Right Sidebar
+- Context-sensitive inspector
+- Metadata
+- EXIF
+- Camera
+- Lens
+- Histogram
+- Keywords
+- Rating
+- Color labels
+
+The interface should feel like software used by professional photographers managing hundreds of thousands of RAW images.
+
+Generate the "Import Photos" dialog.
+
+The dialog should appear centered over the library.
+
+Dialog layout:
+
+Left Column
+- Connected devices
+- SD cards
+- External SSDs
+- NAS locations
+- Local folders
+- Recently used sources
+
+Center
+- Thumbnail preview grid
+- 30–50 photo thumbnails
+- Portrait photography
+- Every thumbnail is unique
+- Mix of RAW and JPEG indicators
+- Multi-select checkboxes
+- File names
+- Capture dates
+- File sizes
+
+Top Toolbar
+- Breadcrumb navigation
+- Search
+- Filter
+- Sort
+- Select All
+- Number of selected photos
+
+Right Panel
+Import Options
+
+Destination
+- Folder picker
+- Create dated folder
+- Custom folder name
+
+File Handling
+- Copy
+- Move
+- Leave in place
+
+Renaming
+- Rename using template
+- Sequence numbering
+
+Metadata
+- Apply copyright
+- Apply keywords
+- Apply preset
+- Apply star rating
+
+AI Options
+- Generate Smart Keywords
+- Detect Faces
+- Detect Duplicate Photos
+- Estimate Image Quality
+- Build Search Index
+
+Bottom Bar
+- Selected item count
+- Total storage required
+- Cancel button
+- Large blue "Import 248 Photos" button
+
+Visual Details
+- Beautiful thumbnail photography
+- Realistic icons
+- Crisp typography
+- Realistic spacing
+- Professional UI polish
+- Subtle hover states
+- Soft blue accent color
+- Clean monochrome iconography
+- Consistent design system
+
+The mockup should be indistinguishable from a real shipping desktop application screenshot. No placeholder boxes, no lorem ipsum, no wireframe styling.
+```
