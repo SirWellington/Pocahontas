@@ -2,15 +2,13 @@ mod db;
 mod catalog;
 mod image;
 mod exif;
+#[cfg(feature = "face-detection")]
 mod face;
 mod python;
 
-use std::path::PathBuf;
-use std::sync::Mutex;
-use std::sync::Arc;
-
 use anyhow::Result;
-use tauri::{Emitter, Manager, State};
+use tokio::sync::Mutex;
+use tauri::{Manager, State};
 use catalog::manager::CatalogManager;
 
 /// App-level state shared across Tauri commands.
@@ -30,7 +28,7 @@ async fn open_catalog(path: String, state: State<'_, AppState>) -> Result<String
         .await
         .map_err(|e| e.to_string())?;
 
-    let mut guard = state.catalog.lock().unwrap();
+    let mut guard = state.catalog.lock().await;
     *guard = Some(catalog);
     Ok(path)
 }
@@ -42,7 +40,7 @@ async fn create_catalog(path: String, state: State<'_, AppState>) -> Result<Stri
         .await
         .map_err(|e| e.to_string())?;
 
-    let mut guard = state.catalog.lock().unwrap();
+    let mut guard = state.catalog.lock().await;
     *guard = Some(catalog);
     Ok(path)
 }
@@ -53,20 +51,15 @@ async fn import_directory(
     dir_path: String,
     state: State<'_, AppState>,
 ) -> Result<usize, String> {
-    let guard = state.catalog.lock().unwrap();
-    let catalog = guard
-        .as_ref()
-        .ok_or_else(|| "No catalog open".to_string())?;
+    let pool = {
+        let guard = state.catalog.lock().await;
+        let catalog = guard.as_ref().ok_or_else(|| "No catalog open".to_string())?;
+        catalog.db.pool().clone()
+    };
 
-    let imported = catalog
-        .import_directory(&dir_path)
+    let imported = CatalogManager::import_directory_from_pool(&pool, &dir_path)
         .await
         .map_err(|e| e.to_string())?;
-
-    drop(guard);
-
-    // Emit event to frontend
-    // app.emit("import:complete", imported).ok();
 
     Ok(imported)
 }
@@ -79,13 +72,13 @@ async fn list_images(
     rating_filter: Option<i32>,
     state: State<'_, AppState>,
 ) -> Result<Vec<catalog::manager::ImageRecord>, String> {
-    let guard = state.catalog.lock().unwrap();
-    let catalog = guard
-        .as_ref()
-        .ok_or_else(|| "No catalog open".to_string())?;
+    let pool = {
+        let guard = state.catalog.lock().await;
+        let catalog = guard.as_ref().ok_or_else(|| "No catalog open".to_string())?;
+        catalog.db.pool().clone()
+    };
 
-    let images = catalog
-        .list_images(offset, limit, rating_filter)
+    let images = CatalogManager::list_images_from_pool(&pool, offset, limit, rating_filter)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -95,12 +88,15 @@ async fn list_images(
 /// Returns the total number of images in the catalog.
 #[tauri::command]
 async fn count_images(state: State<'_, AppState>) -> Result<i64, String> {
-    let guard = state.catalog.lock().unwrap();
-    let catalog = guard
-        .as_ref()
-        .ok_or_else(|| "No catalog open".to_string())?;
+    let pool = {
+        let guard = state.catalog.lock().await;
+        let catalog = guard.as_ref().ok_or_else(|| "No catalog open".to_string())?;
+        catalog.db.pool().clone()
+    };
 
-    let count = catalog.count_images().await.map_err(|e| e.to_string())?;
+    let count = CatalogManager::count_images_from_pool(&pool)
+        .await
+        .map_err(|e| e.to_string())?;
     Ok(count)
 }
 
@@ -110,19 +106,16 @@ async fn list_folders(
     state: State<'_, AppState>,
 ) -> Result<Vec<catalog::manager::FolderRecord>, String> {
     let pool = {
-        let guard = state.catalog.lock().unwrap();
+        let guard = state.catalog.lock().await;
         let catalog = guard
             .as_ref()
             .ok_or_else(|| "No catalog open".to_string())?;
         catalog.db.pool().clone()
     };
 
-    let folders = sqlx::query_as::<_, catalog::manager::FolderRecord>(
-        "SELECT id, path, name, parent_id, date_added, is_watched FROM folders ORDER BY date_added DESC",
-    )
-    .fetch_all(&pool)
-    .await
-    .map_err(|e| e.to_string())?;
+    let folders = CatalogManager::list_folders_from_pool(&pool)
+        .await
+        .map_err(|e| e.to_string())?;
 
     Ok(folders)
 }
@@ -133,13 +126,15 @@ async fn get_thumbnail_path(
     image_id: i64,
     state: State<'_, AppState>,
 ) -> Result<String, String> {
-    let guard = state.catalog.lock().unwrap();
-    let catalog = guard
-        .as_ref()
-        .ok_or_else(|| "No catalog open".to_string())?;
+    let path = {
+        let guard = state.catalog.lock().await;
+        let catalog = guard
+            .as_ref()
+            .ok_or_else(|| "No catalog open".to_string())?;
 
-    let path = catalog.get_thumbnail_path(image_id);
-    Ok(path.to_string_lossy().to_string())
+        catalog.get_thumbnail_path(image_id).to_string_lossy().to_string()
+    };
+    Ok(path)
 }
 
 /// Returns the filesystem path to a smart preview for a given image.
@@ -148,26 +143,38 @@ async fn get_preview_path(
     image_id: i64,
     state: State<'_, AppState>,
 ) -> Result<String, String> {
-    let guard = state.catalog.lock().unwrap();
-    let catalog = guard
-        .as_ref()
-        .ok_or_else(|| "No catalog open".to_string())?;
+    let path = {
+        let guard = state.catalog.lock().await;
+        let catalog = guard
+            .as_ref()
+            .ok_or_else(|| "No catalog open".to_string())?;
 
-    let path = catalog.get_preview_path(image_id);
-    Ok(path.to_string_lossy().to_string())
+        catalog.get_preview_path(image_id).to_string_lossy().to_string()
+    };
+    Ok(path)
 }
 
 /// Starts the background face detection index for all unindexed images.
 #[tauri::command]
 async fn start_face_index(state: State<'_, AppState>) -> Result<(), String> {
-    // This would spawn a background tokio task that iterates over unindexed images,
-    // runs the RetinaFace detector, and stores results in the DB.
-    let guard = state.catalog.lock().unwrap();
-    let _catalog = guard
-        .as_ref()
-        .ok_or_else(|| "No catalog open".to_string())?;
+    let pool = {
+        let guard = state.catalog.lock().await;
+        let catalog = guard
+            .as_ref()
+            .ok_or_else(|| "No catalog open".to_string())?;
+        catalog.db.pool().clone()
+    };
 
-    // Placeholder: actual implementation spawns face::detector::rebuild_face_index
+    #[cfg(feature = "face-detection")]
+    {
+        face::detector::rebuild_face_index(&pool).await.map_err(|e| e.to_string())?;
+    }
+
+    #[cfg(not(feature = "face-detection"))]
+    {
+        let _ = pool;
+    }
+
     Ok(())
 }
 
@@ -177,7 +184,7 @@ async fn upscale_image(
     image_path: String,
     output_dir: String,
     scale: u32,
-    state: State<'_, AppState>,
+    _state: State<'_, AppState>,
 ) -> Result<String, String> {
     let bridge = python::bridge::PythonBridge::with_defaults();
 

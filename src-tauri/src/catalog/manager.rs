@@ -15,7 +15,7 @@ const SUPPORTED_EXTENSIONS: &[&str] = &[
     "arw", "cr3", "cr2", "nef", "orf", "sr2", "dng", "raf",
 ];
 
-#[derive(Debug, FromRow)]
+#[derive(Debug, FromRow, serde::Serialize)]
 pub struct ImageRecord {
     pub id: i64,
     pub folder_id: Option<i64>,
@@ -35,7 +35,7 @@ pub struct ImageRecord {
     pub is_missing: bool,
 }
 
-#[derive(Debug, FromRow)]
+#[derive(Debug, FromRow, serde::Serialize)]
 pub struct FolderRecord {
     pub id: i64,
     pub path: String,
@@ -161,7 +161,7 @@ impl CatalogManager {
             .to_string()
             .to_lowercase();
 
-        let file_hash = self.compute_file_hash(file_path)?;
+        let file_hash = Self::compute_file_hash(file_path)?;
 
         // Parse EXIF metadata
         let exif = self.exif_parser
@@ -169,7 +169,7 @@ impl CatalogManager {
             .unwrap_or_default();
 
         // Insert image record
-        let result = sqlx::query!(
+        let result = sqlx::query(
             r#"
             INSERT INTO images (
                 folder_id, 
@@ -183,23 +183,23 @@ impl CatalogManager {
                 file_hash
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             "#,
-            folder_id,
-            file_path,
-            file_name,
-            file_extension,
-            metadata.len() as i64,
-            exif.width as Option<i32>,
-            exif.height as Option<i32>,
-            exif.date_time_original.as_deref(),
-            file_hash,
         )
+        .bind(folder_id)
+        .bind(file_path)
+        .bind(file_name)
+        .bind(file_extension)
+        .bind(metadata.len() as i64)
+        .bind(exif.width.map(|w| w as i32))
+        .bind(exif.height.map(|h| h as i32))
+        .bind(exif.date_time_original.as_deref())
+        .bind(file_hash)
         .execute(pool)
         .await?;
 
         let image_id = result.last_insert_rowid();
 
         // Insert EXIF data
-        sqlx::query!(
+        sqlx::query(
             r#"
             INSERT INTO exif_data (
                 image_id, 
@@ -216,19 +216,19 @@ impl CatalogManager {
                 gps_altitude
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             "#,
-            image_id,
-            exif.camera_make.as_deref(),
-            exif.camera_model.as_deref(),
-            exif.lens_model.as_deref(),
-            exif.iso as Option<i32>,
-            exif.aperture,
-            exif.shutter_num as Option<i32>,
-            exif.shutter_den as Option<i32>,
-            exif.focal_length,
-            exif.gps_latitude,
-            exif.gps_longitude,
-            exif.gps_altitude,
         )
+        .bind(image_id)
+        .bind(exif.camera_make.as_deref())
+        .bind(exif.camera_model.as_deref())
+        .bind(exif.lens_model.as_deref())
+        .bind(exif.iso.map(|i| i as i32))
+        .bind(exif.aperture)
+        .bind(exif.shutter_num.map(|n| n as i32))
+        .bind(exif.shutter_den.map(|d| d as i32))
+        .bind(exif.focal_length)
+        .bind(exif.gps_latitude)
+        .bind(exif.gps_longitude)
+        .bind(exif.gps_altitude)
         .execute(pool)
         .await?;
 
@@ -256,11 +256,11 @@ impl CatalogManager {
             return Ok(id);
         }
 
-        let result = sqlx::query!(
+        let result = sqlx::query(
             "INSERT INTO folders (path, name) VALUES (?, ?)",
-            path,
-            folder_name,
         )
+        .bind(path)
+        .bind(folder_name)
         .execute(pool)
         .await?;
 
@@ -270,10 +270,10 @@ impl CatalogManager {
     async fn queue_thumbnail(
         &self,
         image_id: i64,
-        file_path: &str,
+        _file_path: &str,
         pool: &SqlitePool,
     ) -> Result<()> {
-        sqlx::query!(
+        sqlx::query(
             r#"
             INSERT INTO processing_queue (
               image_id, 
@@ -282,14 +282,13 @@ impl CatalogManager {
             )
             VALUES (?, 'thumbnail', 10)
             "#,
-            image_id,
-            file_path,
         )
+        .bind(image_id)
         .execute(pool)
         .await?;
 
         // Also queue smart preview
-        sqlx::query!(
+        sqlx::query(
             r#"
             INSERT INTO processing_queue (
                 image_id, 
@@ -298,8 +297,8 @@ impl CatalogManager {
             )
             VALUES (?, 'preview', 5)
             "#,
-            image_id,
         )
+        .bind(image_id)
         .execute(pool)
         .await?;
 
@@ -342,11 +341,12 @@ impl CatalogManager {
                    is_missing
             FROM images
             WHERE is_archived = 0
-              AND ($1 IS NULL OR rating = $1)
+              AND (? IS NULL OR rating = ?)
             ORDER BY date_taken DESC
             LIMIT ? OFFSET ?
             "#,
         )
+        .bind(rating_filter)
         .bind(rating_filter)
         .bind(limit)
         .bind(offset)
@@ -374,5 +374,267 @@ impl CatalogManager {
 
     pub fn get_preview_path(&self, image_id: i64) -> PathBuf {
         self.cache_dir.join(format!("preview_{}.jpg", image_id))
+    }
+
+    /// Static method to import directory using a cloned pool (avoids holding mutex across await).
+    pub async fn import_directory_from_pool(pool: &SqlitePool, dir_path: &str) -> Result<usize> {
+        let dir = Path::new(dir_path);
+
+        if !dir.exists() {
+            anyhow::bail!("Directory does not exist: {}", dir_path);
+        }
+
+        let folder_id = Self::ensure_folder_static(dir_path, pool).await?;
+
+        let mut imported = 0usize;
+        let mut queue = vec![dir.to_path_buf()];
+
+        while let Some(current_dir) = queue.pop() {
+            for entry in WalkDir::new(&current_dir).into_iter().filter_map(|e| e.ok()) {
+                if entry.file_type().is_dir() {
+                    if entry.file_name() != ".praetorian" {
+                        queue.push(entry.path().to_path_buf());
+                    }
+                    continue;
+                }
+
+                let ext = entry
+                    .path()
+                    .extension()
+                    .and_then(|e| e.to_str())
+                    .map(|s| s.to_lowercase())
+                    .unwrap_or_default();
+
+                if !SUPPORTED_EXTENSIONS.contains(&ext.as_str()) {
+                    continue;
+                }
+
+                let file_path = entry.path().to_string_lossy().to_string();
+
+                let exists: bool = sqlx::query_scalar(
+                    "SELECT EXISTS(SELECT 1 FROM images WHERE file_path = ?)",
+                )
+                .bind(&file_path)
+                .fetch_one(pool)
+                .await?;
+
+                if exists {
+                    continue;
+                }
+
+                match Self::import_single_image_static(&file_path, folder_id, pool).await {
+                    Ok(_) => imported += 1,
+                    Err(e) => {
+                        log::warn!("Failed to import {}: {}", file_path, e);
+                    }
+                }
+            }
+        }
+
+        Ok(imported)
+    }
+
+    async fn import_single_image_static(
+        file_path: &str,
+        folder_id: i64,
+        pool: &SqlitePool,
+    ) -> Result<i64> {
+        let metadata = fs::metadata(file_path)
+            .context(format!("Cannot access file: {}", file_path))?;
+
+        let file_name = Path::new(file_path)
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string();
+
+        let file_extension = Path::new(file_path)
+            .extension()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string()
+            .to_lowercase();
+
+        let file_hash = Self::compute_file_hash(file_path)?;
+
+        let exif = ExifParser::new()
+            .parse(file_path)
+            .unwrap_or_default();
+
+        let result = sqlx::query(
+            r#"
+            INSERT INTO images (
+                folder_id,
+                file_path,
+                file_name,
+                file_extension,
+                file_size_bytes,
+                width,
+                height,
+                date_taken,
+                file_hash
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            "#,
+        )
+        .bind(folder_id)
+        .bind(file_path)
+        .bind(file_name)
+        .bind(file_extension)
+        .bind(metadata.len() as i64)
+        .bind(exif.width.map(|w| w as i32))
+        .bind(exif.height.map(|h| h as i32))
+        .bind(exif.date_time_original.as_deref())
+        .bind(file_hash)
+        .execute(pool)
+        .await?;
+
+        let image_id = result.last_insert_rowid();
+
+        sqlx::query(
+            r#"
+            INSERT INTO exif_data (
+                image_id,
+                camera_make,
+                camera_model,
+                lens_model,
+                iso,
+                aperture_f_number,
+                shutter_speed_num,
+                shutter_speed_den,
+                focal_length_mm,
+                gps_latitude,
+                gps_longitude,
+                gps_altitude
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            "#,
+        )
+        .bind(image_id)
+        .bind(exif.camera_make.as_deref())
+        .bind(exif.camera_model.as_deref())
+        .bind(exif.lens_model.as_deref())
+        .bind(exif.iso.map(|i| i as i32))
+        .bind(exif.aperture)
+        .bind(exif.shutter_num.map(|n| n as i32))
+        .bind(exif.shutter_den.map(|d| d as i32))
+        .bind(exif.focal_length)
+        .bind(exif.gps_latitude)
+        .bind(exif.gps_longitude)
+        .bind(exif.gps_altitude)
+        .execute(pool)
+        .await?;
+
+        sqlx::query(
+            r#"
+            INSERT INTO processing_queue (image_id, task_type, priority)
+            VALUES (?, 'thumbnail', 10)
+            "#,
+        )
+        .bind(image_id)
+        .execute(pool)
+        .await?;
+
+        sqlx::query(
+            r#"
+            INSERT INTO processing_queue (image_id, task_type, priority)
+            VALUES (?, 'preview', 5)
+            "#,
+        )
+        .bind(image_id)
+        .execute(pool)
+        .await?;
+
+        Ok(image_id)
+    }
+
+    async fn ensure_folder_static(path: &str, pool: &SqlitePool) -> Result<i64> {
+        let folder_name = Path::new(path)
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string();
+
+        let existing: Option<i64> = sqlx::query_scalar(
+            "SELECT id FROM folders WHERE path = ?",
+        )
+        .bind(path)
+        .fetch_optional(pool)
+        .await?;
+
+        if let Some(id) = existing {
+            return Ok(id);
+        }
+
+        let result = sqlx::query(
+            "INSERT INTO folders (path, name) VALUES (?, ?)",
+        )
+        .bind(path)
+        .bind(folder_name)
+        .execute(pool)
+        .await?;
+
+        Ok(result.last_insert_rowid())
+    }
+
+    /// Static method to list images using a cloned pool.
+    pub async fn list_images_from_pool(
+        pool: &SqlitePool,
+        offset: i64,
+        limit: i64,
+        rating_filter: Option<i32>,
+    ) -> Result<Vec<ImageRecord>> {
+        let images = sqlx::query_as::<_, ImageRecord>(
+            r#"
+            SELECT id,
+                   folder_id,
+                   file_path,
+                   file_name,
+                   file_extension,
+                   file_size_bytes,
+                   width,
+                   height,
+                   date_taken,
+                   date_imported,
+                   has_thumbnail,
+                   has_preview,
+                   rating,
+                   is_favorite,
+                   faces_indexed,
+                   is_missing
+            FROM images
+            WHERE is_archived = 0
+              AND (? IS NULL OR rating = ?)
+            ORDER BY date_taken DESC
+            LIMIT ? OFFSET ?
+            "#,
+        )
+        .bind(rating_filter)
+        .bind(rating_filter)
+        .bind(limit)
+        .bind(offset)
+        .fetch_all(pool)
+        .await?;
+
+        Ok(images)
+    }
+
+    /// Static method to count images using a cloned pool.
+    pub async fn count_images_from_pool(pool: &SqlitePool) -> Result<i64> {
+        let count: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM images WHERE is_archived = 0",
+        )
+        .fetch_one(pool)
+        .await?;
+        Ok(count)
+    }
+
+    /// Static method to list folders using a cloned pool.
+    pub async fn list_folders_from_pool(pool: &SqlitePool) -> Result<Vec<FolderRecord>> {
+        let folders = sqlx::query_as::<_, FolderRecord>(
+            "SELECT id, path, name, parent_id, date_added, is_watched FROM folders ORDER BY date_added DESC",
+        )
+        .fetch_all(pool)
+        .await?;
+
+        Ok(folders)
     }
 }

@@ -200,7 +200,7 @@ pub async fn store_faces(
     detections: &[FaceDetection],
 ) -> Result<()> {
     for det in detections {
-        sqlx::query!(
+        sqlx::query(
             r#"
             INSERT INTO faces (
                 image_id, 
@@ -212,22 +212,22 @@ pub async fn store_faces(
             )
             VALUES (?, ?, ?, ?, ?, ?)
             "#,
-            image_id,
-            det.bbox_x,
-            det.bbox_y,
-            det.bbox_width,
-            det.bbox_height,
-            det.confidence,
         )
+        .bind(image_id)
+        .bind(det.bbox_x)
+        .bind(det.bbox_y)
+        .bind(det.bbox_width)
+        .bind(det.bbox_height)
+        .bind(det.confidence)
         .execute(pool)
         .await?;
     }
 
     // Mark image as face-indexed
-    sqlx::query!(
+    sqlx::query(
         "UPDATE images SET faces_indexed = 1 WHERE id = ?",
-        image_id,
     )
+    .bind(image_id)
     .execute(pool)
     .await?;
 
@@ -236,7 +236,7 @@ pub async fn store_faces(
 
 /// Triggers a full face re-index of all images that haven't been indexed yet.
 pub async fn rebuild_face_index(pool: &SqlitePool, detector: &FaceDetector) -> Result<()> {
-    let unindexed: Vec<String> = sqlx::query_scalar!(
+    let unindexed: Vec<String> = sqlx::query_scalar::<_, String>(
         r#"
         SELECT file_path 
         FROM images 
@@ -245,10 +245,7 @@ pub async fn rebuild_face_index(pool: &SqlitePool, detector: &FaceDetector) -> R
         "#
     )
     .fetch_all(pool)
-    .await?
-    .into_iter()
-    .map(|p| p.unwrap_or_default())
-    .collect();
+    .await?;
 
     log::info!("Rebuilding face index for {} images", unindexed.len());
 
@@ -256,10 +253,10 @@ pub async fn rebuild_face_index(pool: &SqlitePool, detector: &FaceDetector) -> R
         match detector.detect_faces(path).await {
             Ok(detections) => {
                 if !detections.is_empty() {
-                    let image_id: i64 = sqlx::query_scalar!(
+                    let image_id: i64 = sqlx::query_scalar(
                         "SELECT id FROM images WHERE file_path = ?",
-                        path
                     )
+                    .bind(path)
                     .fetch_one(pool)
                     .await?;
 

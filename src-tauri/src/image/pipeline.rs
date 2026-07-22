@@ -161,7 +161,7 @@ impl ImagePipeline {
         }
     }
 
-    /// Generates a tiny thumbnail using libvips.
+    /// Generates a tiny thumbnail.
     async fn generate_thumbnail(
         source_path: &str,
         image_id: i64,
@@ -179,17 +179,17 @@ impl ImagePipeline {
 
         match result {
             Ok(_) => {
-                sqlx::query!(
+                sqlx::query(
                     "UPDATE images SET has_thumbnail = 1, thumbnail_hash = ? WHERE id = ?",
-                    output_path.file_name().unwrap().to_string_lossy(),
-                    image_id,
                 )
+                .bind(output_path.file_name().unwrap().to_string_lossy().to_string())
+                .bind(image_id)
                 .execute(pool)
                 .await?;
                 log::debug!("Generated thumbnail for image {}", image_id);
             }
             Err(e) => {
-                log::error!("vips thumbnail error for {}: {}", source_path, e);
+                log::error!("thumbnail error for {}: {}", source_path, e);
                 return Err(e);
             }
         }
@@ -197,7 +197,7 @@ impl ImagePipeline {
         Ok(())
     }
 
-    /// Generates a smart preview (2048px max) using libvips.
+    /// Generates a smart preview (2048px max).
     async fn generate_preview(
         source_path: &str,
         image_id: i64,
@@ -215,22 +215,22 @@ impl ImagePipeline {
 
         match result {
             Ok(_) => {
-                sqlx::query!(
+                sqlx::query(
                     r#"
                     UPDATE images 
                     SET has_preview = 1, 
                         preview_hash = ? 
                     WHERE id = ?
                     "#,
-                    output_path.file_name().unwrap().to_string_lossy(),
-                    image_id,
                 )
+                .bind(output_path.file_name().unwrap().to_string_lossy().to_string())
+                .bind(image_id)
                 .execute(pool)
                 .await?;
                 log::debug!("Generated preview for image {}", image_id);
             }
             Err(e) => {
-                log::error!("vips preview error for {}: {}", source_path, e);
+                log::error!("preview error for {}: {}", source_path, e);
                 return Err(e);
             }
         }
@@ -238,9 +238,28 @@ impl ImagePipeline {
         Ok(())
     }
 
-    /// Uses libvips to resize an image to the given max dimension and save as JPEG.
-    /// This is the core vips operation that handles RAW, TIFF, and standard formats.
+    /// Resizes an image to the given max dimension and saves as JPEG.
+    /// Uses libvips when available, falls back to the `image` crate.
     fn resize_and_save(
+        input: &str,
+        output: &Path,
+        max_dim: u32,
+        quality: u8,
+    ) -> Result<()> {
+        #[cfg(feature = "vips")]
+        {
+            return Self::resize_with_vips(input, output, max_dim, quality);
+        }
+
+        #[cfg(not(feature = "vips"))]
+        {
+            return Self::resize_with_image(input, output, max_dim, quality);
+        }
+    }
+
+    /// Resize using libvips (fast, supports RAW formats).
+    #[cfg(feature = "vips")]
+    fn resize_with_vips(
         input: &str,
         output: &Path,
         max_dim: u32,
@@ -256,7 +275,6 @@ impl ImagePipeline {
         };
 
         if scale >= 1.0 {
-            // Image is already smaller than target; just convert to JPEG
             img.write_jpeg(
                 output.to_str().unwrap(),
                 vips::image::JpegOptions {
@@ -277,6 +295,37 @@ impl ImagePipeline {
                     ..Default::default()
                 },
             )?;
+        }
+
+        Ok(())
+    }
+
+    /// Resize using the `image` crate (slower, no RAW support).
+    #[cfg(not(feature = "vips"))]
+    fn resize_with_image(
+        input: &str,
+        output: &Path,
+        max_dim: u32,
+        _quality: u8,
+    ) -> Result<()> {
+        use image::GenericImageView;
+
+        let img = image::open(input)?;
+        let (w, h) = img.dimensions();
+
+        let scale = if w > h {
+            max_dim as f64 / w as f64
+        } else {
+            max_dim as f64 / h as f64
+        };
+
+        if scale >= 1.0 {
+            img.save_with_format(output, image::ImageFormat::Jpeg)?;
+        } else {
+            let new_w = (w as f64 * scale).round() as u32;
+            let new_h = (h as f64 * scale).round() as u32;
+            let resized = img.resize(new_w, new_h, image::imageops::FilterType::Lanczos3);
+            resized.save(output)?;
         }
 
         Ok(())

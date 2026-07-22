@@ -1,13 +1,12 @@
-use std::fs::File;
-use std::io::Read;
 use anyhow::Result;
+use image::ImageReader;
 
 /// Parsed EXIF metadata from an image file.
 #[derive(Debug, Clone, Default)]
 pub struct ExifData {
     // Dimensions
-    pub width: u32,
-    pub height: u32,
+    pub width: Option<u32>,
+    pub height: Option<u32>,
 
     // Camera
     pub camera_make: Option<String>,
@@ -54,18 +53,15 @@ impl ExifParser {
         let mut data = ExifData::default();
 
         // Try to open with the image crate first
-        if let Ok(img) = image::io::Reader::open(path) {
+        if let Ok(img) = ImageReader::open(path) {
             if let Ok(img) = img.with_guessed_format() {
-                let metadata = img.header()?.exif();
-
-                if let Some(exif) = metadata {
-                    data = self.parse_exif_bytes(exif)?;
+                if let Ok((w, h)) = img.into_dimensions() {
+                    data.width = Some(w);
+                    data.height = Some(h);
                 }
 
-                // Get dimensions from header
-                let hdr = img.header()?;
-                data.width = hdr.width();
-                data.height = hdr.height();
+                // EXIF data is not available through ImageReader in image 0.25
+                // We rely on the exif crate directly or exiftool fallback
             }
         }
 
