@@ -661,7 +661,10 @@ impl CatalogManager {
 
         let result = sqlx::query(
             r#"
-            INSERT INTO folders (path, name) 
+            INSERT INTO folders (
+                path,
+                name
+            ) 
             VALUES (?, ?)
             "#,
         )
