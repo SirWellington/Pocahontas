@@ -1,12 +1,27 @@
 import { useCatalogStore } from "@/hooks/useCatalog";
+import { open } from "@tauri-apps/plugin-dialog";
 
 const Toolbar: React.FC = () => {
   const { path, leftPanelVisible, rightPanelVisible, toggleLeftPanel, toggleRightPanel } =
     useCatalogStore();
 
   const handleOpenCatalog = async () => {
-    // Mock: just open with a fake path
-    await useCatalogStore.getState().openCatalog("/Users/moreno/Library/Praetorian/catalog.praetorian");
+    const selected = await open({
+      multiple: false,
+      filters: [
+        {
+          name: "Catalog",
+          extensions: ["praetorian"],
+        },
+        {
+          name: "All Files",
+          extensions: ["*"],
+        },
+      ],
+    });
+    if (selected && typeof selected === "string") {
+      await useCatalogStore.getState().openCatalog(selected);
+    }
   };
 
   return (

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { open, save } from "@tauri-apps/plugin-dialog";
 import Toolbar from "@/components/Toolbar";
 import Sidebar from "@/components/Sidebar";
 import GalleryGrid from "@/components/GalleryGrid";
@@ -7,13 +7,39 @@ import { useCatalogStore } from "@/hooks/useCatalog";
 
 const App: React.FC = () => {
   const { path, leftPanelVisible, rightPanelVisible } = useCatalogStore();
-  const [_catalogOpen, setCatalogOpen] = useState(false);
 
   const handleOpenCatalog = async () => {
-    await useCatalogStore
-      .getState()
-      .openCatalog("/Users/moreno/Library/Praetorian/catalog.praetorian");
-    setCatalogOpen(true);
+    const selected = await open({
+      multiple: false,
+      filters: [
+        {
+          name: "Catalog",
+          extensions: ["praetorian"],
+        },
+        {
+          name: "All Files",
+          extensions: ["*"],
+        },
+      ],
+    });
+    if (selected && typeof selected === "string") {
+      await useCatalogStore.getState().openCatalog(selected);
+    }
+  };
+
+  const handleCreateCatalog = async () => {
+    const selected = await save({
+      defaultPath: "library.praetorian",
+      filters: [
+        {
+          name: "Catalog",
+          extensions: ["praetorian"],
+        },
+      ],
+    });
+    if (selected && typeof selected === "string") {
+      await useCatalogStore.getState().createCatalog(selected);
+    }
   };
 
   return (
@@ -42,15 +68,20 @@ const App: React.FC = () => {
               Local-first photo library & cataloging
             </p>
           </div>
-          <button
-            className="px-5 py-2 text-[13px] bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors font-medium shadow-md"
-            onClick={handleOpenCatalog}
-          >
-            Open Catalog
-          </button>
-          <p className="text-[11px] text-[#444]">
-            Or create a new .praetorian catalog file
-          </p>
+          <div className="flex gap-3">
+            <button
+              className="px-5 py-2 text-[13px] bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors font-medium shadow-md"
+              onClick={handleOpenCatalog}
+            >
+              Open Catalog
+            </button>
+            <button
+              className="px-5 py-2 text-[13px] bg-[#2a2a2a] hover:bg-[#333] text-white rounded-lg transition-colors font-medium border border-[#3a3a3a]"
+              onClick={handleCreateCatalog}
+            >
+              New Catalog
+            </button>
+          </div>
         </div>
       )}
     </div>
