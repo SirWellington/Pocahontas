@@ -192,7 +192,10 @@ impl CatalogManager {
 
                 // Skip if already cataloged
                 let exists: bool = sqlx::query_scalar(
-                    "SELECT EXISTS(SELECT 1 FROM images WHERE file_path = ?)",
+                    r#"SELECT EXISTS(
+                        SELECT 1 FROM images WHERE file_path = ?
+                    )
+                    "#,
                 )
                 .bind(&file_path)
                 .fetch_one(pool)
@@ -436,7 +439,11 @@ impl CatalogManager {
     pub async fn count_images(&self) -> Result<i64> {
         let pool = self.db.pool();
         let count: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM images WHERE is_archived = 0",
+            r#"
+            SELECT COUNT(*) 
+            FROM images 
+            WHERE is_archived = 0
+            "#,
         )
         .fetch_one(pool)
         .await?;
@@ -488,7 +495,9 @@ impl CatalogManager {
                 let file_path = entry.path().to_string_lossy().to_string();
 
                 let exists: bool = sqlx::query_scalar(
-                    "SELECT EXISTS(SELECT 1 FROM images WHERE file_path = ?)",
+                    r#"SELECT EXISTS(
+                    SELECT 1 FROM images WHERE file_path = ?
+                    )"#,
                 )
                 .bind(&file_path)
                 .fetch_one(pool)
@@ -630,7 +639,11 @@ impl CatalogManager {
             .to_string();
 
         let existing: Option<i64> = sqlx::query_scalar(
-            "SELECT id FROM folders WHERE path = ?",
+            r#"
+            SELECT id 
+            FROM folders 
+            WHERE path = ?
+            "#,
         )
         .bind(path)
         .fetch_optional(pool)
@@ -641,7 +654,10 @@ impl CatalogManager {
         }
 
         let result = sqlx::query(
-            "INSERT INTO folders (path, name) VALUES (?, ?)",
+            r#"
+            INSERT INTO folders (path, name) 
+            VALUES (?, ?)
+            "#,
         )
         .bind(path)
         .bind(folder_name)
@@ -696,7 +712,11 @@ impl CatalogManager {
     /// Static method to count images using a cloned pool.
     pub async fn count_images_from_pool(pool: &SqlitePool) -> Result<i64> {
         let count: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM images WHERE is_archived = 0",
+            r#"
+            SELECT COUNT(*) 
+            FROM images 
+            WHERE is_archived = 0
+            "#,
         )
         .fetch_one(pool)
         .await?;
@@ -706,7 +726,16 @@ impl CatalogManager {
     /// Static method to list folders using a cloned pool.
     pub async fn list_folders_from_pool(pool: &SqlitePool) -> Result<Vec<FolderRecord>> {
         let folders = sqlx::query_as::<_, FolderRecord>(
-            "SELECT id, path, name, parent_id, date_added, is_watched FROM folders ORDER BY date_added DESC",
+            r#"
+            SELECT id, 
+                   path, 
+                   name, 
+                   parent_id, 
+                   date_added, 
+                   is_watched 
+            FROM folders 
+            ORDER BY date_added DESC
+            "#,
         )
         .fetch_all(pool)
         .await?;
@@ -721,10 +750,22 @@ impl CatalogManager {
     pub async fn get_image_details_from_pool(pool: &SqlitePool, image_id: i64) -> Result<(ImageRecord, Option<ExifRecord>)> {
         let image: ImageRecord = sqlx::query_as::<_, ImageRecord>(
             r#"
-            SELECT id, folder_id, file_path, file_name, file_extension,
-                   file_size_bytes, width, height, date_taken, date_imported,
-                   has_thumbnail, has_preview, rating, is_favorite,
-                   faces_indexed, is_missing
+            SELECT id, 
+                   folder_id, 
+                   file_path, 
+                   file_name, 
+                   file_extension,
+                   file_size_bytes,
+                   width, 
+                   height, 
+                   date_taken, 
+                   date_imported,
+                   has_thumbnail, 
+                   has_preview, 
+                   rating, 
+                   is_favorite,
+                   faces_indexed,
+                   is_missing
             FROM images WHERE id = ?
             "#,
         )
@@ -734,10 +775,20 @@ impl CatalogManager {
 
         let exif: Option<ExifRecord> = sqlx::query_as::<_, ExifRecord>(
             r#"
-            SELECT image_id, camera_make, camera_model, lens_model,
-                   iso, aperture_f_number, shutter_speed_num, shutter_speed_den,
-                   focal_length_mm, gps_latitude, gps_longitude, gps_altitude
-            FROM exif_data WHERE image_id = ?
+            SELECT image_id, 
+                   camera_make, 
+                   camera_model, 
+                   lens_model,
+                   iso, 
+                   aperture_f_number, 
+                   shutter_speed_num, 
+                   shutter_speed_den,
+                   focal_length_mm, 
+                   gps_latitude, 
+                   gps_longitude, 
+                   gps_altitude
+            FROM exif_data 
+            WHERE image_id = ?
             "#,
         )
         .bind(image_id)
@@ -752,7 +803,11 @@ impl CatalogManager {
     // ============================================
 
     pub async fn update_rating_from_pool(pool: &SqlitePool, image_id: i64, rating: i32) -> Result<()> {
-        sqlx::query("UPDATE images SET rating = ? WHERE id = ?")
+        sqlx::query(r#"
+            UPDATE images 
+            SET rating = ? 
+            WHERE id = ?
+            "#)
             .bind(rating)
             .bind(image_id)
             .execute(pool)
@@ -762,7 +817,12 @@ impl CatalogManager {
 
     pub async fn toggle_favorite_from_pool(pool: &SqlitePool, image_id: i64) -> Result<bool> {
         let row = sqlx::query(
-            "UPDATE images SET is_favorite = NOT is_favorite WHERE id = ? RETURNING is_favorite",
+            r#"
+            UPDATE images 
+            SET is_favorite = NOT is_favorite 
+            WHERE id = ? 
+            RETURNING is_favorite
+            "#,
         )
         .bind(image_id)
         .fetch_one(pool)
@@ -772,7 +832,11 @@ impl CatalogManager {
     }
 
     pub async fn set_favorite_from_pool(pool: &SqlitePool, image_id: i64, is_favorite: bool) -> Result<()> {
-        sqlx::query("UPDATE images SET is_favorite = ? WHERE id = ?")
+        sqlx::query(r#"
+            UPDATE images 
+            SET is_favorite = ? 
+            WHERE id = ?
+            "#)
             .bind(is_favorite)
             .bind(image_id)
             .execute(pool)
@@ -785,7 +849,11 @@ impl CatalogManager {
     // ============================================
 
     pub async fn archive_image_from_pool(pool: &SqlitePool, image_id: i64, is_archived: bool) -> Result<()> {
-        sqlx::query("UPDATE images SET is_archived = ? WHERE id = ?")
+        sqlx::query(r#"
+            UPDATE images 
+            SET is_archived = ? 
+            WHERE id = ?
+            "#)
             .bind(is_archived)
             .bind(image_id)
             .execute(pool)
@@ -794,7 +862,10 @@ impl CatalogManager {
     }
 
     pub async fn delete_image_from_pool(pool: &SqlitePool, image_id: i64) -> Result<()> {
-        sqlx::query("DELETE FROM images WHERE id = ?")
+        sqlx::query(r#"
+            DELETE FROM images 
+            WHERE id = ?
+            "#)
             .bind(image_id)
             .execute(pool)
             .await?;
@@ -804,7 +875,10 @@ impl CatalogManager {
     pub async fn delete_images_from_pool(pool: &SqlitePool, image_ids: &[i64]) -> Result<usize> {
         let mut total = 0usize;
         for id in image_ids {
-            let _ = sqlx::query("DELETE FROM images WHERE id = ?")
+            let _ = sqlx::query(r#"
+                DELETE FROM images 
+                WHERE id = ?
+                "#)
                 .bind(id)
                 .execute(pool)
                 .await;
@@ -826,10 +900,22 @@ impl CatalogManager {
         let search = format!("%{}%", query);
         let images = sqlx::query_as::<_, ImageRecord>(
             r#"
-            SELECT id, folder_id, file_path, file_name, file_extension,
-                   file_size_bytes, width, height, date_taken, date_imported,
-                   has_thumbnail, has_preview, rating, is_favorite,
-                   faces_indexed, is_missing
+            SELECT id, 
+                   folder_id, 
+                   file_path, 
+                   file_name, 
+                   file_extension,
+                   file_size_bytes, 
+                   width, 
+                   height, 
+                   date_taken, 
+                   date_imported,
+                   has_thumbnail, 
+                   has_preview, 
+                   rating, 
+                   is_favorite,
+                   faces_indexed,
+                   is_missing
             FROM images
             WHERE is_archived = 0
               AND (
@@ -859,12 +945,25 @@ impl CatalogManager {
         let search = format!("%{}%", camera_model);
         let images = sqlx::query_as::<_, ImageRecord>(
             r#"
-            SELECT i.id, i.folder_id, i.file_path, i.file_name, i.file_extension,
-                   i.file_size_bytes, i.width, i.height, i.date_taken, i.date_imported,
-                   i.has_thumbnail, i.has_preview, i.rating, i.is_favorite,
-                   i.faces_indexed, i.is_missing
+            SELECT i.id,
+                   i.folder_id,
+                   i.file_path,
+                   i.file_name,
+                   i.file_extension,
+                   i.file_size_bytes,
+                   i.width,
+                   i.height,
+                   i.date_taken,
+                   i.date_imported
+                   i.has_thumbnail,
+                   i.has_preview,
+                   i.rating,
+                   i.is_favorite,
+                   i.faces_indexed,
+                   i.is_missing
             FROM images i
-            JOIN exif_data e ON e.image_id = i.id
+            JOIN exif_data e 
+                ON e.image_id = i.id
             WHERE i.is_archived = 0
               AND e.camera_model LIKE ?
             ORDER BY i.date_taken DESC
@@ -889,12 +988,25 @@ impl CatalogManager {
         let search = format!("%{}%", lens_model);
         let images = sqlx::query_as::<_, ImageRecord>(
             r#"
-            SELECT i.id, i.folder_id, i.file_path, i.file_name, i.file_extension,
-                   i.file_size_bytes, i.width, i.height, i.date_taken, i.date_imported,
-                   i.has_thumbnail, i.has_preview, i.rating, i.is_favorite,
-                   i.faces_indexed, i.is_missing
+            SELECT i.id,
+                   i.folder_id,
+                   i.file_path,
+                   i.file_name,
+                   i.file_extension,
+                   i.file_size_bytes,
+                   i.width,
+                   i.height,
+                   i.date_taken,
+                   i.date_imported,
+                   i.has_thumbnail,
+                   i.has_preview,
+                   i.rating,
+                   i.is_favorite,
+                   i.faces_indexed,
+                   i.is_missing
             FROM images i
-            JOIN exif_data e ON e.image_id = i.id
+            JOIN exif_data e 
+                ON e.image_id = i.id
             WHERE i.is_archived = 0
               AND e.lens_model LIKE ?
             ORDER BY i.date_taken DESC
@@ -918,12 +1030,26 @@ impl CatalogManager {
     ) -> Result<Vec<ImageRecord>> {
         let images = sqlx::query_as::<_, ImageRecord>(
             r#"
-            SELECT DISTINCT i.id, i.folder_id, i.file_path, i.file_name, i.file_extension,
-                   i.file_size_bytes, i.width, i.height, i.date_taken, i.date_imported,
-                   i.has_thumbnail, i.has_preview, i.rating, i.is_favorite,
-                   i.faces_indexed, i.is_missing
+            SELECT DISTINCT 
+                i.id,
+                i.folder_id,
+                i.file_path,
+                i.file_name,
+                i.file_extension,
+                i.file_size_bytes,
+                i.width,
+                i.height,
+                i.date_taken,
+                i.date_imported,
+                i.has_thumbnail,
+                i.has_preview,
+                i.rating,
+                i.is_favorite,
+                i.faces_indexed, 
+                i.is_missing
             FROM images i
-            JOIN faces f ON f.image_id = i.id
+            JOIN faces f 
+                ON f.image_id = i.id
             WHERE i.is_archived = 0
               AND f.person_id = ?
             ORDER BY i.date_taken DESC
@@ -947,12 +1073,26 @@ impl CatalogManager {
     ) -> Result<Vec<ImageRecord>> {
         let images = sqlx::query_as::<_, ImageRecord>(
             r#"
-            SELECT DISTINCT i.id, i.folder_id, i.file_path, i.file_name, i.file_extension,
-                   i.file_size_bytes, i.width, i.height, i.date_taken, i.date_imported,
-                   i.has_thumbnail, i.has_preview, i.rating, i.is_favorite,
-                   i.faces_indexed, i.is_missing
+            SELECT DISTINCT
+                i.id,
+                i.folder_id,
+                i.file_path,
+                i.file_name,
+                i.file_extension,
+                i.file_size_bytes,
+                i.width,
+                i.height,
+                i.date_taken,
+                i.date_imported,
+                i.has_thumbnail,
+                i.has_preview,
+                i.rating,
+                i.is_favorite,
+                i.faces_indexed,
+                i.is_missing
             FROM images i
-            JOIN image_tags it ON it.image_id = i.id
+            JOIN image_tags it 
+                ON it.image_id = i.id
             WHERE i.is_archived = 0
               AND it.tag_id = ?
             ORDER BY i.date_taken DESC
@@ -976,12 +1116,26 @@ impl CatalogManager {
     ) -> Result<Vec<ImageRecord>> {
         let images = sqlx::query_as::<_, ImageRecord>(
             r#"
-            SELECT DISTINCT i.id, i.folder_id, i.file_path, i.file_name, i.file_extension,
-                   i.file_size_bytes, i.width, i.height, i.date_taken, i.date_imported,
-                   i.has_thumbnail, i.has_preview, i.rating, i.is_favorite,
-                   i.faces_indexed, i.is_missing
+            SELECT DISTINCT 
+                i.id,
+                i.folder_id,
+                i.file_path,
+                i.file_name,
+                i.file_extension,
+                i.file_size_bytes,
+                i.width,
+                i.height,
+                i.date_taken,
+                i.date_imported,
+                i.has_thumbnail,
+                i.has_preview,
+                i.rating,
+                i.is_favorite,
+                i.faces_indexed,
+                i.is_missing
             FROM images i
-            JOIN album_images ai ON ai.image_id = i.id
+            JOIN album_images ai 
+                ON ai.image_id = i.id
             WHERE i.is_archived = 0
               AND ai.album_id = ?
             ORDER BY i.date_taken DESC
@@ -1004,7 +1158,8 @@ impl CatalogManager {
         let search = format!("%{}%", query);
         let count: i64 = sqlx::query_scalar(
             r#"
-            SELECT COUNT(*) FROM images
+            SELECT COUNT(*) 
+            FROM images
             WHERE is_archived = 0
               AND (file_name LIKE ? OR file_path LIKE ?)
             "#,
@@ -1023,10 +1178,12 @@ impl CatalogManager {
     pub async fn list_people_from_pool(pool: &SqlitePool) -> Result<Vec<PersonRecord>> {
         let people = sqlx::query_as::<_, PersonRecord>(
             r#"
-            SELECT p.id, p.name, p.created_at, p.updated_at,
+            SELECT p.id, 
+            p.name, p.created_at, p.updated_at,
                    COUNT(f.id) AS face_count
             FROM people p
-            LEFT JOIN faces f ON f.person_id = p.id
+            LEFT JOIN faces f 
+                ON f.person_id = p.id
             GROUP BY p.id
             ORDER BY p.name ASC
             "#,
@@ -1085,9 +1242,16 @@ impl CatalogManager {
     pub async fn get_faces_for_image_from_pool(pool: &SqlitePool, image_id: i64) -> Result<Vec<FaceRecord>> {
         let faces = sqlx::query_as::<_, FaceRecord>(
             r#"
-            SELECT id, image_id, person_id,
-                   bbox_x, bbox_y, bbox_width, bbox_height, confidence
-            FROM faces WHERE image_id = ?
+            SELECT id,
+                   image_id,
+                   person_id,
+                   bbox_x,
+                   bbox_y,
+                   bbox_width,
+                   bbox_height,
+                   confidence
+            FROM faces 
+            WHERE image_id = ?
             "#,
         )
         .bind(image_id)
@@ -1099,9 +1263,16 @@ impl CatalogManager {
     pub async fn get_faces_for_person_from_pool(pool: &SqlitePool, person_id: i64) -> Result<Vec<FaceRecord>> {
         let faces = sqlx::query_as::<_, FaceRecord>(
             r#"
-            SELECT id, image_id, person_id,
-                   bbox_x, bbox_y, bbox_width, bbox_height, confidence
-            FROM faces WHERE person_id = ?
+            SELECT id, 
+                   image_id, 
+                   person_id,
+                   bbox_x, 
+                   bbox_y, 
+                   bbox_width, 
+                   bbox_height, 
+                   confidence
+            FROM faces 
+            WHERE person_id = ?
             "#,
         )
         .bind(person_id)
@@ -1116,12 +1287,25 @@ impl CatalogManager {
     ) -> Result<Vec<ImageRecord>> {
         let images = sqlx::query_as::<_, ImageRecord>(
             r#"
-            SELECT DISTINCT i.id, i.folder_id, i.file_path, i.file_name, i.file_extension,
-                   i.file_size_bytes, i.width, i.height, i.date_taken, i.date_imported,
-                   i.has_thumbnail, i.has_preview, i.rating, i.is_favorite,
-                   i.faces_indexed, i.is_missing
+            SELECT DISTINCT i.id,
+                   i.folder_id,
+                   i.file_path,
+                   i.file_name,
+                   i.file_extension,
+                   i.file_size_bytes,
+                   i.width,
+                   i.height,
+                   i.date_taken,
+                   i.date_imported,
+                   i.has_thumbnail,
+                   i.has_preview,
+                   i.rating,
+                   i.is_favorite,
+                   i.faces_indexed,
+                   i.is_missing
             FROM images i
-            JOIN faces f ON f.image_id = i.id
+            JOIN faces f 
+                ON f.image_id = i.id
             WHERE f.person_id = ?
             ORDER BY i.date_taken DESC
             "#,
