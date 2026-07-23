@@ -822,8 +822,7 @@ impl CatalogManager {
     }
 
     pub async fn toggle_favorite_from_pool(pool: &SqlitePool, image_id: i64) -> Result<bool> {
-        let row = sqlx::query(
-            r#"
+        let row = sqlx::query(r#"
             UPDATE images 
             SET is_favorite = NOT is_favorite 
             WHERE id = ? 
