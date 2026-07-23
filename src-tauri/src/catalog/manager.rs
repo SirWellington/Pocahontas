@@ -1191,8 +1191,10 @@ impl CatalogManager {
         let people = sqlx::query_as::<_, PersonRecord>(
             r#"
             SELECT p.id, 
-            p.name, p.created_at, p.updated_at,
-                   COUNT(f.id) AS face_count
+                         p.name, 
+                         p.created_at, 
+                         p.updated_at,
+                         COUNT(f.id) AS face_count
             FROM people p
             LEFT JOIN faces f 
                 ON f.person_id = p.id
