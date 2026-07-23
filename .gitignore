@@ -37,3 +37,7 @@ cache/
 
 #Playwright
 playwright-report/
+
+
+# AI Tools
+beledarian_info.md
