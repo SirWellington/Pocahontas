@@ -626,7 +626,11 @@ impl CatalogManager {
 
         sqlx::query(
             r#"
-            INSERT INTO processing_queue (image_id, task_type, priority)
+            INSERT INTO processing_queue (
+                image_id,
+                task_type,
+                priority
+            )
             VALUES (?, 'preview', 5)
             "#,
         )
