@@ -34,3 +34,10 @@ cache/
 
 # Build artifacts
 *.log
+
+#Playwright
+playwright-report/
+test-results/
+
+# AI Tools
+beledarian_info.md

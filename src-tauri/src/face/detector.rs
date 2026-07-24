@@ -1,7 +1,10 @@
-use std::path::Path;
-use std::sync::Arc;
+use std::sync::Mutex;
 
 use anyhow::{Context, Result};
+use image::imageops::FilterType;
+use image::{ImageBuffer, Rgb};
+use ort::session::Session;
+use ort::value::TensorRef;
 use sqlx::SqlitePool;
 
 /// RetinaFace face detection engine using ONNX Runtime with GPU support.
@@ -15,8 +18,8 @@ use sqlx::SqlitePool;
 pub struct FaceDetector {
     /// Path to the RetinaFace ONNX model file.
     model_path: String,
-    /// ONNX Runtime session (initialized lazily).
-    session: Option<ort::Session>,
+    /// ONNX Runtime session (wrapped in Mutex for interior mutability).
+    session: Option<Mutex<Session>>,
 }
 
 impl FaceDetector {
@@ -30,28 +33,19 @@ impl FaceDetector {
     }
 
     /// Initializes the ONNX Runtime session with GPU support.
-    /// Tries providers in order: CUDA -> Vulkan -> CPU.
+    /// Tries providers in order: CUDA -> CPU.
     pub fn initialize(&mut self) -> Result<()> {
-        let mut providers = Vec::new();
-
-        // Try CUDA first (Nvidia GPUs)
-        providers.push(
-            ort::CUDAExecutionProvider::default()
-                .with_arm_math_memops(true)
-                .build(),
-        );
-
-        // Fallback to CPU
-        providers.push(ort::CPUExecutionProvider::default().build());
-
-        let session = ort::Session::builder()
+        let session = Session::builder()
             .map_err(|e| anyhow::anyhow!("Failed to create ONNX session builder: {}", e))?
-            .with_execution_providers(providers)
+            .with_execution_providers([
+                ort::ep::CUDA::default().build(),
+                ort::ep::CPU::default().build(),
+            ])
             .map_err(|e| anyhow::anyhow!("Failed to set execution providers: {}", e))?
             .commit_from_file(&self.model_path)
             .map_err(|e| anyhow::anyhow!("Failed to load ONNX model: {}", e))?;
 
-        self.session = Some(session);
+        self.session = Some(Mutex::new(session));
         log::info!("FaceDetector initialized with model: {}", self.model_path);
 
         Ok(())
@@ -69,18 +63,17 @@ impl FaceDetector {
         let img = image::open(image_path)
             .context(format!("Failed to open image: {}", image_path))?;
 
-        let (img_width, img_height) = (img.width(), img.height());
+        let img_width = img.width();
 
         // RetinaFace typically expects input at specific anchor scales.
         // We resize while maintaining aspect ratio and pad to model input size.
         let target_size = 640u32;
         let resized = self.prepare_input(&img, target_size);
 
-        let input_len = resized.width() * resized.height() * 3;
         let input_data: Vec<f32> = resized
             .pixels()
             .flat_map(|p| {
-                // BGR format, normalized to [0, 1], with mean subtraction
+                // BGR format, with mean subtraction
                 // RetinaFace uses mean=[122.6789, 116.6687, 104.0069]
                 vec![
                     (p[2] as f32 - 122.6789f32),
@@ -90,22 +83,19 @@ impl FaceDetector {
             })
             .collect();
 
-        // Create input tensor
-        let input_shape = vec![1, 3, resized.height() as i64, resized.width() as i64];
-        let input_tensor = ort::Tensor::<f32>::from_vec(
-            ort::Environment::default(),
-            input_data,
-            input_shape,
-        )
-        .map_err(|e| anyhow::anyhow!("Failed to create input tensor: {}", e))?;
+        // Create input tensor using ort 2.0 API
+        let input_shape = vec![1, 3, resized.height() as usize, resized.width() as usize];
+        let input_tensor = TensorRef::from_array_view((input_shape, input_data.as_slice()))
+            .map_err(|e| anyhow::anyhow!("Failed to create input tensor: {}", e))?;
 
-        // Run inference
-        let outputs = session
-            .run(ort::Inputs::one(input_tensor))
+        // Run inference using ort 2.0 inputs! macro
+        let mut sess = session.lock().map_err(|e| anyhow::anyhow!("Mutex poisoned: {}", e))?;
+        let outputs = sess
+            .run(ort::inputs![input_tensor])
             .map_err(|e| anyhow::anyhow!("ONNX inference failed: {}", e))?;
 
         // Parse outputs: RetinaFace outputs [loc, conf, landmarks]
-        let detections = self.parse_outputs(&outputs, img_width, img_height);
+        let detections = self.parse_outputs(&outputs, img_width, img.height());
 
         Ok(detections)
     }
@@ -126,25 +116,25 @@ impl FaceDetector {
     }
 
     /// Prepares an image for RetinaFace input: resize, pad, convert to BGR.
-    fn prepare_input(&self, img: &image::DynamicImage, target_size: u32) -> image::RgbImage {
+    fn prepare_input(&self, img: &image::DynamicImage, target_size: u32) -> ImageBuffer<Rgb<u8>, Vec<u8>> {
         let (w, h) = (img.width(), img.height());
         let scale = target_size as f64 / w.max(h) as f64;
 
         let new_w = (w as f64 * scale).round() as u32;
         let new_h = (h as f64 * scale).round() as u32;
 
-        let resized = img.resize(new_w, new_h, image::ImageFilter::Triangle);
+        let resized = img.resize(new_w, new_h, FilterType::Triangle);
+        let rgb = resized.into_rgb8();
 
         // Pad to square
-        let padded = image::imageops::map(
-            &image::RgbImage::new(target_size, target_size, image::Rgb([0u8, 0, 0])),
-            |x, y, rgb| {
-                if x < new_w && y < new_h {
-                    *rgb = resized.get_pixel(x, y);
-                }
-                *rgb
-            },
-        );
+        let mut padded = ImageBuffer::new(target_size, target_size);
+
+        for y in 0..new_h {
+            for x in 0..new_w {
+                let pixel = rgb.get_pixel(x, y);
+                padded.put_pixel(x, y, *pixel);
+            }
+        }
 
         padded
     }
@@ -152,23 +142,23 @@ impl FaceDetector {
     /// Parses ONNX outputs into face detections.
     fn parse_outputs(
         &self,
-        outputs: &ort::Outputs,
-        img_width: u32,
-        img_height: u32,
+        outputs: &ort::session::SessionOutputs,
+        _img_width: u32,
+        _img_height: u32,
     ) -> Vec<FaceDetection> {
-        let mut detections = Vec::new();
+        let detections = Vec::new();
 
         // RetinaFace outputs:
         // - output[0]: bounding box predictions (N, 4)
         // - output[1]: confidence scores (N, 2) [background, face]
         // - output[2..]: landmark predictions
 
-        // Simplified parsing - actual implementation depends on specific model output format
-        for output in outputs.iter() {
-            if let Some(data) = output.try_extract_tensor::<f32>() {
-                let view = data.unwrap();
+        // Parse outputs using ort 2.0 API
+        for (_name, output) in outputs.iter() {
+            if let Ok((shape, data)) = output.try_extract_tensor::<f32>() {
                 // Parse bounding boxes and confidence scores
                 // This is a simplified version; actual parsing depends on model architecture
+                let _ = (shape, data);
             }
         }
 
@@ -200,7 +190,7 @@ pub async fn store_faces(
     detections: &[FaceDetection],
 ) -> Result<()> {
     for det in detections {
-        sqlx::query!(
+        sqlx::query(
             r#"
             INSERT INTO faces (
                 image_id, 
@@ -212,22 +202,22 @@ pub async fn store_faces(
             )
             VALUES (?, ?, ?, ?, ?, ?)
             "#,
-            image_id,
-            det.bbox_x,
-            det.bbox_y,
-            det.bbox_width,
-            det.bbox_height,
-            det.confidence,
         )
+        .bind(image_id)
+        .bind(det.bbox_x)
+        .bind(det.bbox_y)
+        .bind(det.bbox_width)
+        .bind(det.bbox_height)
+        .bind(det.confidence)
         .execute(pool)
         .await?;
     }
 
     // Mark image as face-indexed
-    sqlx::query!(
+    sqlx::query(
         "UPDATE images SET faces_indexed = 1 WHERE id = ?",
-        image_id,
     )
+    .bind(image_id)
     .execute(pool)
     .await?;
 
@@ -236,7 +226,7 @@ pub async fn store_faces(
 
 /// Triggers a full face re-index of all images that haven't been indexed yet.
 pub async fn rebuild_face_index(pool: &SqlitePool, detector: &FaceDetector) -> Result<()> {
-    let unindexed: Vec<String> = sqlx::query_scalar!(
+    let unindexed: Vec<String> = sqlx::query_scalar::<_, String>(
         r#"
         SELECT file_path 
         FROM images 
@@ -245,10 +235,7 @@ pub async fn rebuild_face_index(pool: &SqlitePool, detector: &FaceDetector) -> R
         "#
     )
     .fetch_all(pool)
-    .await?
-    .into_iter()
-    .map(|p| p.unwrap_or_default())
-    .collect();
+    .await?;
 
     log::info!("Rebuilding face index for {} images", unindexed.len());
 
@@ -256,10 +243,10 @@ pub async fn rebuild_face_index(pool: &SqlitePool, detector: &FaceDetector) -> R
         match detector.detect_faces(path).await {
             Ok(detections) => {
                 if !detections.is_empty() {
-                    let image_id: i64 = sqlx::query_scalar!(
+                    let image_id: i64 = sqlx::query_scalar(
                         "SELECT id FROM images WHERE file_path = ?",
-                        path
                     )
+                    .bind(path)
                     .fetch_one(pool)
                     .await?;
 

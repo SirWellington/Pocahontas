@@ -1,0 +1,13 @@
+{
+  "$schema": "https://raw.githubusercontent.com/nicegram/tauri/v2.0.0/tooling/cli/src/helpers/json-schemas/capabilities.json",
+  "identifier": "default",
+  "description": "Default capabilities for Praetorian",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "dialog:allow-open",
+    "dialog:allow-save",
+    "fs:default",
+    "shell:default"
+  ]
+}

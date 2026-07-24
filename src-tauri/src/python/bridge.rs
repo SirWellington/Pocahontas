@@ -1,11 +1,9 @@
 use std::path::{Path, PathBuf};
-use std::process::{Child, Command, Stdio};
-use std::io::{BufRead, BufReader, Write};
-use std::sync::Arc;
+use std::process::{Command, Stdio};
+use std::io::{BufRead, BufReader};
 use std::time::Duration;
 
 use anyhow::{Context, Result};
-use tokio::time;
 
 /// Configuration for the Python upscaling bridge.
 #[derive(Debug, Clone)]
@@ -133,7 +131,8 @@ impl PythonBridge {
             }
             errors.join("\n")
         })
-        .await;
+        .await
+        .unwrap_or_default();
 
         let error = if error_msg.is_empty() {
             None
@@ -142,6 +141,8 @@ impl PythonBridge {
         };
 
         progress_handle.await.ok();
+
+        let exit_status = exit_status?;
 
         if exit_status.success() {
             Ok(UpscaleResult {

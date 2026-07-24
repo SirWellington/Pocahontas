@@ -87,7 +87,7 @@ const DetailsPanel: React.FC = () => {
           <KeyValue label="ISO" value={exif?.iso?.toString() ?? "—"} />
           <KeyValue
             label="Aperture"
-            value={exif?.aperture ? `f/${exif.aperture}` : "—"}
+            value={exif?.aperture_f_number != null ? `f/${exif.aperture_f_number}` : "—"}
           />
           <KeyValue
             label="Shutter"
@@ -99,7 +99,7 @@ const DetailsPanel: React.FC = () => {
           />
           <KeyValue
             label="Focal Length"
-            value={exif?.focal_length ? `${exif.focal_length}mm` : "—"}
+            value={exif?.focal_length_mm != null ? `${exif.focal_length_mm}mm` : "—"}
           />
         </PanelSection>
 

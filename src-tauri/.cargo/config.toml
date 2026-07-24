@@ -3,6 +3,8 @@ rustflags = ["-C", "target-cpu=native"]
 
 [env]
 SQLX_OFFLINE = "true"
+# vips-sys does not pass VIPS_ROOT/include to bindgen's clang, so we set it here.
+BINDGEN_EXTRA_CLANG_ARGS = { value = "-I'C:/Program Files/vips/vips-dev-8.18/include' -I'C:/Program Files/vips/vips-dev-8.18/include/glib-2.0' -I'C:/Program Files/vips/vips-dev-8.18/lib/glib-2.0/include'", force = true }
 
 [target.x86_64-unknown-linux-gnu]
 linker = "clang"
