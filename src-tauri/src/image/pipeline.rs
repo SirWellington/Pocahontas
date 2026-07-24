@@ -130,8 +130,7 @@ impl ImagePipeline {
                 tokio::time::Duration::from_millis(DB_POLL_INTERVAL_MS),
                 receiver.recv(),
             )
-            .await
-            {
+            .await {
                 Ok(Some(job)) => {
                     Self::process_job(job, &cache_dir, &pool).await;
                     continue;

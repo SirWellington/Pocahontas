@@ -192,7 +192,10 @@ impl CatalogManager {
 
                 // Skip if already cataloged
                 let exists: bool = sqlx::query_scalar(
-                    "SELECT EXISTS(SELECT 1 FROM images WHERE file_path = ?)",
+                    r#"SELECT EXISTS(
+                        SELECT 1 FROM images WHERE file_path = ?
+                    )
+                    "#,
                 )
                 .bind(&file_path)
                 .fetch_one(pool)
@@ -436,7 +439,11 @@ impl CatalogManager {
     pub async fn count_images(&self) -> Result<i64> {
         let pool = self.db.pool();
         let count: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM images WHERE is_archived = 0",
+            r#"
+            SELECT COUNT(*) 
+            FROM images 
+            WHERE is_archived = 0
+            "#,
         )
         .fetch_one(pool)
         .await?;
@@ -488,7 +495,11 @@ impl CatalogManager {
                 let file_path = entry.path().to_string_lossy().to_string();
 
                 let exists: bool = sqlx::query_scalar(
-                    "SELECT EXISTS(SELECT 1 FROM images WHERE file_path = ?)",
+                    r#"SELECT EXISTS(
+                        SELECT 1 
+                        FROM images 
+                        WHERE file_path = ?
+                    )"#,
                 )
                 .bind(&file_path)
                 .fetch_one(pool)
@@ -601,7 +612,11 @@ impl CatalogManager {
 
         sqlx::query(
             r#"
-            INSERT INTO processing_queue (image_id, task_type, priority)
+            INSERT INTO processing_queue (
+                image_id, 
+                task_type, 
+                priority
+            )
             VALUES (?, 'thumbnail', 10)
             "#,
         )
@@ -611,7 +626,11 @@ impl CatalogManager {
 
         sqlx::query(
             r#"
-            INSERT INTO processing_queue (image_id, task_type, priority)
+            INSERT INTO processing_queue (
+                image_id,
+                task_type,
+                priority
+            )
             VALUES (?, 'preview', 5)
             "#,
         )
@@ -630,7 +649,11 @@ impl CatalogManager {
             .to_string();
 
         let existing: Option<i64> = sqlx::query_scalar(
-            "SELECT id FROM folders WHERE path = ?",
+            r#"
+            SELECT id 
+            FROM folders 
+            WHERE path = ?
+            "#,
         )
         .bind(path)
         .fetch_optional(pool)
@@ -641,7 +664,13 @@ impl CatalogManager {
         }
 
         let result = sqlx::query(
-            "INSERT INTO folders (path, name) VALUES (?, ?)",
+            r#"
+            INSERT INTO folders (
+                path,
+                name
+            ) 
+            VALUES (?, ?)
+            "#,
         )
         .bind(path)
         .bind(folder_name)
@@ -696,7 +725,11 @@ impl CatalogManager {
     /// Static method to count images using a cloned pool.
     pub async fn count_images_from_pool(pool: &SqlitePool) -> Result<i64> {
         let count: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM images WHERE is_archived = 0",
+            r#"
+            SELECT COUNT(*) 
+            FROM images 
+            WHERE is_archived = 0
+            "#,
         )
         .fetch_one(pool)
         .await?;
@@ -706,7 +739,16 @@ impl CatalogManager {
     /// Static method to list folders using a cloned pool.
     pub async fn list_folders_from_pool(pool: &SqlitePool) -> Result<Vec<FolderRecord>> {
         let folders = sqlx::query_as::<_, FolderRecord>(
-            "SELECT id, path, name, parent_id, date_added, is_watched FROM folders ORDER BY date_added DESC",
+            r#"
+            SELECT id, 
+                   path, 
+                   name, 
+                   parent_id, 
+                   date_added, 
+                   is_watched 
+            FROM folders 
+            ORDER BY date_added DESC
+            "#,
         )
         .fetch_all(pool)
         .await?;
@@ -721,10 +763,22 @@ impl CatalogManager {
     pub async fn get_image_details_from_pool(pool: &SqlitePool, image_id: i64) -> Result<(ImageRecord, Option<ExifRecord>)> {
         let image: ImageRecord = sqlx::query_as::<_, ImageRecord>(
             r#"
-            SELECT id, folder_id, file_path, file_name, file_extension,
-                   file_size_bytes, width, height, date_taken, date_imported,
-                   has_thumbnail, has_preview, rating, is_favorite,
-                   faces_indexed, is_missing
+            SELECT id, 
+                   folder_id, 
+                   file_path, 
+                   file_name, 
+                   file_extension,
+                   file_size_bytes,
+                   width, 
+                   height, 
+                   date_taken, 
+                   date_imported,
+                   has_thumbnail, 
+                   has_preview, 
+                   rating, 
+                   is_favorite,
+                   faces_indexed,
+                   is_missing
             FROM images WHERE id = ?
             "#,
         )
@@ -734,10 +788,20 @@ impl CatalogManager {
 
         let exif: Option<ExifRecord> = sqlx::query_as::<_, ExifRecord>(
             r#"
-            SELECT image_id, camera_make, camera_model, lens_model,
-                   iso, aperture_f_number, shutter_speed_num, shutter_speed_den,
-                   focal_length_mm, gps_latitude, gps_longitude, gps_altitude
-            FROM exif_data WHERE image_id = ?
+            SELECT image_id, 
+                   camera_make, 
+                   camera_model, 
+                   lens_model,
+                   iso, 
+                   aperture_f_number, 
+                   shutter_speed_num, 
+                   shutter_speed_den,
+                   focal_length_mm, 
+                   gps_latitude, 
+                   gps_longitude, 
+                   gps_altitude
+            FROM exif_data 
+            WHERE image_id = ?
             "#,
         )
         .bind(image_id)
@@ -752,7 +816,11 @@ impl CatalogManager {
     // ============================================
 
     pub async fn update_rating_from_pool(pool: &SqlitePool, image_id: i64, rating: i32) -> Result<()> {
-        sqlx::query("UPDATE images SET rating = ? WHERE id = ?")
+        sqlx::query(r#"
+            UPDATE images 
+            SET rating = ? 
+            WHERE id = ?
+            "#)
             .bind(rating)
             .bind(image_id)
             .execute(pool)
@@ -761,8 +829,12 @@ impl CatalogManager {
     }
 
     pub async fn toggle_favorite_from_pool(pool: &SqlitePool, image_id: i64) -> Result<bool> {
-        let row = sqlx::query(
-            "UPDATE images SET is_favorite = NOT is_favorite WHERE id = ? RETURNING is_favorite",
+        let row = sqlx::query(r#"
+            UPDATE images 
+            SET is_favorite = NOT is_favorite 
+            WHERE id = ? 
+            RETURNING is_favorite
+            "#,
         )
         .bind(image_id)
         .fetch_one(pool)
@@ -772,7 +844,11 @@ impl CatalogManager {
     }
 
     pub async fn set_favorite_from_pool(pool: &SqlitePool, image_id: i64, is_favorite: bool) -> Result<()> {
-        sqlx::query("UPDATE images SET is_favorite = ? WHERE id = ?")
+        sqlx::query(r#"
+            UPDATE images 
+            SET is_favorite = ? 
+            WHERE id = ?
+            "#)
             .bind(is_favorite)
             .bind(image_id)
             .execute(pool)
@@ -785,7 +861,11 @@ impl CatalogManager {
     // ============================================
 
     pub async fn archive_image_from_pool(pool: &SqlitePool, image_id: i64, is_archived: bool) -> Result<()> {
-        sqlx::query("UPDATE images SET is_archived = ? WHERE id = ?")
+        sqlx::query(r#"
+            UPDATE images 
+            SET is_archived = ? 
+            WHERE id = ?
+            "#)
             .bind(is_archived)
             .bind(image_id)
             .execute(pool)
@@ -794,7 +874,10 @@ impl CatalogManager {
     }
 
     pub async fn delete_image_from_pool(pool: &SqlitePool, image_id: i64) -> Result<()> {
-        sqlx::query("DELETE FROM images WHERE id = ?")
+        sqlx::query(r#"
+            DELETE FROM images 
+            WHERE id = ?
+            "#)
             .bind(image_id)
             .execute(pool)
             .await?;
@@ -804,7 +887,10 @@ impl CatalogManager {
     pub async fn delete_images_from_pool(pool: &SqlitePool, image_ids: &[i64]) -> Result<usize> {
         let mut total = 0usize;
         for id in image_ids {
-            let _ = sqlx::query("DELETE FROM images WHERE id = ?")
+            let _ = sqlx::query(r#"
+                DELETE FROM images 
+                WHERE id = ?
+                "#)
                 .bind(id)
                 .execute(pool)
                 .await;
@@ -826,10 +912,22 @@ impl CatalogManager {
         let search = format!("%{}%", query);
         let images = sqlx::query_as::<_, ImageRecord>(
             r#"
-            SELECT id, folder_id, file_path, file_name, file_extension,
-                   file_size_bytes, width, height, date_taken, date_imported,
-                   has_thumbnail, has_preview, rating, is_favorite,
-                   faces_indexed, is_missing
+            SELECT id, 
+                   folder_id, 
+                   file_path, 
+                   file_name, 
+                   file_extension,
+                   file_size_bytes, 
+                   width, 
+                   height, 
+                   date_taken, 
+                   date_imported,
+                   has_thumbnail, 
+                   has_preview, 
+                   rating, 
+                   is_favorite,
+                   faces_indexed,
+                   is_missing
             FROM images
             WHERE is_archived = 0
               AND (
@@ -859,12 +957,25 @@ impl CatalogManager {
         let search = format!("%{}%", camera_model);
         let images = sqlx::query_as::<_, ImageRecord>(
             r#"
-            SELECT i.id, i.folder_id, i.file_path, i.file_name, i.file_extension,
-                   i.file_size_bytes, i.width, i.height, i.date_taken, i.date_imported,
-                   i.has_thumbnail, i.has_preview, i.rating, i.is_favorite,
-                   i.faces_indexed, i.is_missing
+            SELECT i.id,
+                   i.folder_id,
+                   i.file_path,
+                   i.file_name,
+                   i.file_extension,
+                   i.file_size_bytes,
+                   i.width,
+                   i.height,
+                   i.date_taken,
+                   i.date_imported
+                   i.has_thumbnail,
+                   i.has_preview,
+                   i.rating,
+                   i.is_favorite,
+                   i.faces_indexed,
+                   i.is_missing
             FROM images i
-            JOIN exif_data e ON e.image_id = i.id
+            JOIN exif_data e 
+                ON e.image_id = i.id
             WHERE i.is_archived = 0
               AND e.camera_model LIKE ?
             ORDER BY i.date_taken DESC
@@ -889,12 +1000,25 @@ impl CatalogManager {
         let search = format!("%{}%", lens_model);
         let images = sqlx::query_as::<_, ImageRecord>(
             r#"
-            SELECT i.id, i.folder_id, i.file_path, i.file_name, i.file_extension,
-                   i.file_size_bytes, i.width, i.height, i.date_taken, i.date_imported,
-                   i.has_thumbnail, i.has_preview, i.rating, i.is_favorite,
-                   i.faces_indexed, i.is_missing
+            SELECT i.id,
+                   i.folder_id,
+                   i.file_path,
+                   i.file_name,
+                   i.file_extension,
+                   i.file_size_bytes,
+                   i.width,
+                   i.height,
+                   i.date_taken,
+                   i.date_imported,
+                   i.has_thumbnail,
+                   i.has_preview,
+                   i.rating,
+                   i.is_favorite,
+                   i.faces_indexed,
+                   i.is_missing
             FROM images i
-            JOIN exif_data e ON e.image_id = i.id
+            JOIN exif_data e 
+                ON e.image_id = i.id
             WHERE i.is_archived = 0
               AND e.lens_model LIKE ?
             ORDER BY i.date_taken DESC
@@ -918,12 +1042,26 @@ impl CatalogManager {
     ) -> Result<Vec<ImageRecord>> {
         let images = sqlx::query_as::<_, ImageRecord>(
             r#"
-            SELECT DISTINCT i.id, i.folder_id, i.file_path, i.file_name, i.file_extension,
-                   i.file_size_bytes, i.width, i.height, i.date_taken, i.date_imported,
-                   i.has_thumbnail, i.has_preview, i.rating, i.is_favorite,
-                   i.faces_indexed, i.is_missing
+            SELECT DISTINCT 
+                i.id,
+                i.folder_id,
+                i.file_path,
+                i.file_name,
+                i.file_extension,
+                i.file_size_bytes,
+                i.width,
+                i.height,
+                i.date_taken,
+                i.date_imported,
+                i.has_thumbnail,
+                i.has_preview,
+                i.rating,
+                i.is_favorite,
+                i.faces_indexed, 
+                i.is_missing
             FROM images i
-            JOIN faces f ON f.image_id = i.id
+            JOIN faces f 
+                ON f.image_id = i.id
             WHERE i.is_archived = 0
               AND f.person_id = ?
             ORDER BY i.date_taken DESC
@@ -947,12 +1085,26 @@ impl CatalogManager {
     ) -> Result<Vec<ImageRecord>> {
         let images = sqlx::query_as::<_, ImageRecord>(
             r#"
-            SELECT DISTINCT i.id, i.folder_id, i.file_path, i.file_name, i.file_extension,
-                   i.file_size_bytes, i.width, i.height, i.date_taken, i.date_imported,
-                   i.has_thumbnail, i.has_preview, i.rating, i.is_favorite,
-                   i.faces_indexed, i.is_missing
+            SELECT DISTINCT
+                i.id,
+                i.folder_id,
+                i.file_path,
+                i.file_name,
+                i.file_extension,
+                i.file_size_bytes,
+                i.width,
+                i.height,
+                i.date_taken,
+                i.date_imported,
+                i.has_thumbnail,
+                i.has_preview,
+                i.rating,
+                i.is_favorite,
+                i.faces_indexed,
+                i.is_missing
             FROM images i
-            JOIN image_tags it ON it.image_id = i.id
+            JOIN image_tags it 
+                ON it.image_id = i.id
             WHERE i.is_archived = 0
               AND it.tag_id = ?
             ORDER BY i.date_taken DESC
@@ -976,12 +1128,26 @@ impl CatalogManager {
     ) -> Result<Vec<ImageRecord>> {
         let images = sqlx::query_as::<_, ImageRecord>(
             r#"
-            SELECT DISTINCT i.id, i.folder_id, i.file_path, i.file_name, i.file_extension,
-                   i.file_size_bytes, i.width, i.height, i.date_taken, i.date_imported,
-                   i.has_thumbnail, i.has_preview, i.rating, i.is_favorite,
-                   i.faces_indexed, i.is_missing
+            SELECT DISTINCT 
+                i.id,
+                i.folder_id,
+                i.file_path,
+                i.file_name,
+                i.file_extension,
+                i.file_size_bytes,
+                i.width,
+                i.height,
+                i.date_taken,
+                i.date_imported,
+                i.has_thumbnail,
+                i.has_preview,
+                i.rating,
+                i.is_favorite,
+                i.faces_indexed,
+                i.is_missing
             FROM images i
-            JOIN album_images ai ON ai.image_id = i.id
+            JOIN album_images ai 
+                ON ai.image_id = i.id
             WHERE i.is_archived = 0
               AND ai.album_id = ?
             ORDER BY i.date_taken DESC
@@ -1004,7 +1170,8 @@ impl CatalogManager {
         let search = format!("%{}%", query);
         let count: i64 = sqlx::query_scalar(
             r#"
-            SELECT COUNT(*) FROM images
+            SELECT COUNT(*) 
+            FROM images
             WHERE is_archived = 0
               AND (file_name LIKE ? OR file_path LIKE ?)
             "#,
@@ -1023,10 +1190,14 @@ impl CatalogManager {
     pub async fn list_people_from_pool(pool: &SqlitePool) -> Result<Vec<PersonRecord>> {
         let people = sqlx::query_as::<_, PersonRecord>(
             r#"
-            SELECT p.id, p.name, p.created_at, p.updated_at,
+            SELECT p.id, 
+                   p.name, 
+                   p.created_at, 
+                   p.updated_at,
                    COUNT(f.id) AS face_count
             FROM people p
-            LEFT JOIN faces f ON f.person_id = p.id
+            LEFT JOIN faces f 
+                ON f.person_id = p.id
             GROUP BY p.id
             ORDER BY p.name ASC
             "#,
@@ -1045,7 +1216,14 @@ impl CatalogManager {
     }
 
     pub async fn update_person_name_from_pool(pool: &SqlitePool, person_id: i64, name: &str) -> Result<()> {
-        sqlx::query("UPDATE people SET name = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = ?")
+        sqlx::query(
+            r#"
+            UPDATE people 
+            SET name = ?, 
+                updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') 
+            WHERE id = ?
+            "#
+        )
             .bind(name)
             .bind(person_id)
             .execute(pool)
@@ -1054,7 +1232,13 @@ impl CatalogManager {
     }
 
     pub async fn delete_person_from_pool(pool: &SqlitePool, person_id: i64) -> Result<()> {
-        sqlx::query("DELETE FROM people WHERE id = ?")
+        sqlx::query(
+            r#"
+            DELETE 
+            FROM people 
+            WHERE id = ?
+            "#
+        )
             .bind(person_id)
             .execute(pool)
             .await?;
@@ -1066,7 +1250,13 @@ impl CatalogManager {
         face_id: i64,
         person_id: i64,
     ) -> Result<()> {
-        sqlx::query("UPDATE faces SET person_id = ? WHERE id = ?")
+        sqlx::query(
+            r#"
+            UPDATE faces 
+            SET person_id = ? 
+            WHERE id = ?
+            "#
+        )
             .bind(person_id)
             .bind(face_id)
             .execute(pool)
@@ -1075,7 +1265,13 @@ impl CatalogManager {
     }
 
     pub async fn unassign_face_from_person_from_pool(pool: &SqlitePool, face_id: i64) -> Result<()> {
-        sqlx::query("UPDATE faces SET person_id = NULL WHERE id = ?")
+        sqlx::query(
+            r#"
+            UPDATE faces 
+            SET person_id = NULL 
+            WHERE id = ?
+            "#
+        )
             .bind(face_id)
             .execute(pool)
             .await?;
@@ -1085,9 +1281,16 @@ impl CatalogManager {
     pub async fn get_faces_for_image_from_pool(pool: &SqlitePool, image_id: i64) -> Result<Vec<FaceRecord>> {
         let faces = sqlx::query_as::<_, FaceRecord>(
             r#"
-            SELECT id, image_id, person_id,
-                   bbox_x, bbox_y, bbox_width, bbox_height, confidence
-            FROM faces WHERE image_id = ?
+            SELECT id,
+                   image_id,
+                   person_id,
+                   bbox_x,
+                   bbox_y,
+                   bbox_width,
+                   bbox_height,
+                   confidence
+            FROM faces 
+            WHERE image_id = ?
             "#,
         )
         .bind(image_id)
@@ -1099,9 +1302,16 @@ impl CatalogManager {
     pub async fn get_faces_for_person_from_pool(pool: &SqlitePool, person_id: i64) -> Result<Vec<FaceRecord>> {
         let faces = sqlx::query_as::<_, FaceRecord>(
             r#"
-            SELECT id, image_id, person_id,
-                   bbox_x, bbox_y, bbox_width, bbox_height, confidence
-            FROM faces WHERE person_id = ?
+            SELECT id, 
+                   image_id, 
+                   person_id,
+                   bbox_x, 
+                   bbox_y, 
+                   bbox_width, 
+                   bbox_height, 
+                   confidence
+            FROM faces 
+            WHERE person_id = ?
             "#,
         )
         .bind(person_id)
@@ -1116,12 +1326,25 @@ impl CatalogManager {
     ) -> Result<Vec<ImageRecord>> {
         let images = sqlx::query_as::<_, ImageRecord>(
             r#"
-            SELECT DISTINCT i.id, i.folder_id, i.file_path, i.file_name, i.file_extension,
-                   i.file_size_bytes, i.width, i.height, i.date_taken, i.date_imported,
-                   i.has_thumbnail, i.has_preview, i.rating, i.is_favorite,
-                   i.faces_indexed, i.is_missing
+            SELECT DISTINCT i.id,
+                   i.folder_id,
+                   i.file_path,
+                   i.file_name,
+                   i.file_extension,
+                   i.file_size_bytes,
+                   i.width,
+                   i.height,
+                   i.date_taken,
+                   i.date_imported,
+                   i.has_thumbnail,
+                   i.has_preview,
+                   i.rating,
+                   i.is_favorite,
+                   i.faces_indexed,
+                   i.is_missing
             FROM images i
-            JOIN faces f ON f.image_id = i.id
+            JOIN faces f 
+                ON f.image_id = i.id
             WHERE f.person_id = ?
             ORDER BY i.date_taken DESC
             "#,
@@ -1138,7 +1361,13 @@ impl CatalogManager {
 
     pub async fn list_tags_from_pool(pool: &SqlitePool) -> Result<Vec<TagRecord>> {
         let tags = sqlx::query_as::<_, TagRecord>(
-            "SELECT id, name, color FROM tags ORDER BY name ASC",
+            r#"
+            SELECT id,
+                   name, 
+                   color
+            FROM tags
+            ORDER BY name ASC
+            "#,
         )
         .fetch_all(pool)
         .await?;
@@ -1146,25 +1375,43 @@ impl CatalogManager {
     }
 
     pub async fn create_tag_from_pool(pool: &SqlitePool, name: &str, color: Option<&str>) -> Result<i64> {
-        let result = sqlx::query("INSERT INTO tags (name, color) VALUES (?, ?)")
-            .bind(name)
-            .bind(color)
-            .execute(pool)
-            .await?;
+        let result = sqlx::query(
+            r#"
+            INSERT INTO tags (
+                name, 
+                color
+            ) VALUES (?, ?)
+            "#,
+        )
+        .bind(name)
+        .bind(color)
+        .execute(pool)
+        .await?;
+        
         Ok(result.last_insert_rowid())
     }
 
     pub async fn delete_tag_from_pool(pool: &SqlitePool, tag_id: i64) -> Result<()> {
-        sqlx::query("DELETE FROM tags WHERE id = ?")
-            .bind(tag_id)
-            .execute(pool)
-            .await?;
+        sqlx::query(
+            r#"
+            DELETE FROM tags 
+            WHERE id = ?
+            "#,
+        )
+        .bind(tag_id)
+        .execute(pool)
+        .await?;
         Ok(())
     }
 
     pub async fn tag_image_from_pool(pool: &SqlitePool, image_id: i64, tag_id: i64) -> Result<()> {
         sqlx::query(
-            "INSERT OR IGNORE INTO image_tags (image_id, tag_id) VALUES (?, ?)",
+            r#"
+            INSERT OR IGNORE INTO image_tags (
+                image_id, 
+                tag_id
+            ) VALUES (?, ?)
+            "#,
         )
         .bind(image_id)
         .bind(tag_id)
@@ -1175,7 +1422,12 @@ impl CatalogManager {
 
     pub async fn untag_image_from_pool(pool: &SqlitePool, image_id: i64, tag_id: i64) -> Result<()> {
         sqlx::query(
-            "DELETE FROM image_tags WHERE image_id = ? AND tag_id = ?",
+            r#"
+            DELETE
+            FROM image_tags
+            WHERE image_id = ? 
+                AND tag_id = ?
+            "#,
         )
         .bind(image_id)
         .bind(tag_id)
@@ -1187,9 +1439,12 @@ impl CatalogManager {
     pub async fn get_tags_for_image_from_pool(pool: &SqlitePool, image_id: i64) -> Result<Vec<TagRecord>> {
         let tags = sqlx::query_as::<_, TagRecord>(
             r#"
-            SELECT t.id, t.name, t.color
+            SELECT t.id, 
+                   t.name, 
+                   t.color
             FROM tags t
-            JOIN image_tags it ON it.tag_id = t.id
+            JOIN image_tags it 
+                ON it.tag_id = t.id
             WHERE it.image_id = ?
             ORDER BY t.name ASC
             "#,
@@ -1205,8 +1460,14 @@ impl CatalogManager {
     // ============================================
 
     pub async fn list_albums_from_pool(pool: &SqlitePool) -> Result<Vec<AlbumRecord>> {
-        let albums = sqlx::query_as::<_, AlbumRecord>(
-            "SELECT id, name, description, created_at FROM albums ORDER BY created_at DESC",
+        let albums = sqlx::query_as::<_, AlbumRecord>(r#"
+            SELECT id, 
+                   name, 
+                   description, 
+                   created_at
+            FROM albums
+            ORDER BY created_at DESC
+            "#,
         )
         .fetch_all(pool)
         .await?;
@@ -1218,16 +1479,27 @@ impl CatalogManager {
         name: &str,
         description: Option<&str>,
     ) -> Result<i64> {
-        let result = sqlx::query("INSERT INTO albums (name, description) VALUES (?, ?)")
-            .bind(name)
-            .bind(description)
-            .execute(pool)
-            .await?;
+        let result = sqlx::query(r#"
+            INSERT INTO albums (
+                name, 
+                description
+            ) VALUES (?, ?)
+            "#,
+        )
+        .bind(name)
+        .bind(description)
+        .execute(pool)
+        .await?;
         Ok(result.last_insert_rowid())
     }
 
     pub async fn delete_album_from_pool(pool: &SqlitePool, album_id: i64) -> Result<()> {
-        sqlx::query("DELETE FROM albums WHERE id = ?")
+        sqlx::query(r#"
+            DELETE
+            FROM albums 
+            WHERE id = ?
+            "#,
+        )
             .bind(album_id)
             .execute(pool)
             .await?;
@@ -1235,8 +1507,12 @@ impl CatalogManager {
     }
 
     pub async fn add_image_to_album_from_pool(pool: &SqlitePool, album_id: i64, image_id: i64) -> Result<()> {
-        sqlx::query(
-            "INSERT OR IGNORE INTO album_images (album_id, image_id) VALUES (?, ?)",
+        sqlx::query(r#"
+            INSERT OR IGNORE INTO album_images (
+                album_id, 
+                image_id
+            ) VALUES (?, ?)
+            "#,
         )
         .bind(album_id)
         .bind(image_id)
@@ -1246,8 +1522,12 @@ impl CatalogManager {
     }
 
     pub async fn remove_image_from_album_from_pool(pool: &SqlitePool, album_id: i64, image_id: i64) -> Result<()> {
-        sqlx::query(
-            "DELETE FROM album_images WHERE album_id = ? AND image_id = ?",
+        sqlx::query(r#"
+            DELETE
+            FROM album_images
+            WHERE album_id = ? 
+                AND image_id = ?
+            "#,
         )
         .bind(album_id)
         .bind(image_id)
@@ -1270,28 +1550,56 @@ impl CatalogManager {
     // ============================================
 
     pub async fn get_catalog_stats_from_pool(pool: &SqlitePool) -> Result<CatalogStats> {
-        let total_images: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM images")
-            .fetch_one(pool)
-            .await?;
-        let total_faces: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM faces")
-            .fetch_one(pool)
-            .await?;
-        let total_people: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM people")
-            .fetch_one(pool)
-            .await?;
-        let total_folders: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM folders")
-            .fetch_one(pool)
-            .await?;
-        let total_tags: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM tags")
-            .fetch_one(pool)
-            .await?;
-        let unindexed_faces: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM images WHERE faces_indexed = 0 AND is_missing = 0",
+        let total_images: i64 = sqlx::query_scalar(r#"
+            SELECT COUNT(*) FROM images
+            "#,
         )
         .fetch_one(pool)
         .await?;
+        
+        let total_faces: i64 = sqlx::query_scalar(r#"
+            SELECT COUNT(*) FROM faces
+            "#,
+        )
+        .fetch_one(pool)
+        .await?;
+        
+        let total_people: i64 = sqlx::query_scalar(r#"
+            SELECT COUNT(*) FROM people
+            "#,
+        )
+        .fetch_one(pool)
+        .await?;
+        
+        let total_folders: i64 = sqlx::query_scalar(r#"
+            SELECT COUNT(*) FROM folders
+            "#,
+        )
+        .fetch_one(pool)
+        .await?;
+        
+        let total_tags: i64 = sqlx::query_scalar(r#"
+            SELECT COUNT(*) 
+            FROM tags
+            "#,
+        )
+        .fetch_one(pool)
+        .await?;
+        
+        let unindexed_faces: i64 = sqlx::query_scalar(
+            r#"
+            SELECT COUNT(*) FROM images WHERE faces_indexed = 0 AND is_missing = 0
+            "#,
+        )
+        .fetch_one(pool)
+        .await?;
+
         let missing_files: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM images WHERE is_missing = 1",
+            r#"
+            SELECT COUNT(*) 
+            FROM images 
+            WHERE is_missing = 1
+            "#,
         )
         .fetch_one(pool)
         .await?;
