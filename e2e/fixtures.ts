@@ -24,6 +24,14 @@ export interface AppFixture {
     mockImages: (count?: number) => Promise<void>;
     /** Clear any mocked store state. */
     clearMockState: () => Promise<void>;
+    /** Mock people in the catalog store. */
+    mockPeople: (people: Array<{ id: number; name: string; faceCount: number }>) => Promise<void>;
+    /** Mock tags in the catalog store. */
+    mockTags: (tags: Array<{ id: number; name: string; color?: string | null }>) => Promise<void>;
+    /** Mock albums in the catalog store. */
+    mockAlbums: (albums: Array<{ id: number; name: string }>) => Promise<void>;
+    /** Mock catalog stats in the store. */
+    mockStats: (stats: { totalImages: number; totalFaces: number; totalPeople: number; unindexedFaces: number }) => Promise<void>;
   };
 }
 
@@ -120,6 +128,69 @@ export const test = base.extend<AppFixture>({
             totalImages: 0,
           });
         });
+      },
+      mockPeople: async (people) => {
+        await page.evaluate((ppl) => {
+          const store = (window as any).__CATALOG_STORE__;
+          const state = store.getState();
+          store.setState({
+            ...state,
+            people: ppl.map(({ id, name, faceCount }) => ({
+              id,
+              name,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              face_count: faceCount,
+            })),
+          });
+        }, people);
+      },
+      mockTags: async (tags) => {
+        await page.evaluate((tgs) => {
+          const store = (window as any).__CATALOG_STORE__;
+          const state = store.getState();
+          store.setState({
+            ...state,
+            tags: tgs.map(({ id, name, color }) => ({
+              id,
+              name,
+              color: color ?? null,
+            })),
+          });
+        }, tags);
+      },
+      mockAlbums: async (albums) => {
+        await page.evaluate((albs) => {
+          const store = (window as any).__CATALOG_STORE__;
+          const state = store.getState();
+          store.setState({
+            ...state,
+            albums: albs.map(({ id, name }) => ({
+              id,
+              name,
+              description: null,
+              created_at: new Date().toISOString(),
+            })),
+          });
+        }, albums);
+      },
+      mockStats: async (stats) => {
+        await page.evaluate((s) => {
+          const store = (window as any).__CATALOG_STORE__;
+          const state = store.getState();
+          store.setState({
+            ...state,
+            stats: {
+              total_images: s.totalImages,
+              total_faces: s.totalFaces,
+              total_people: s.totalPeople,
+              total_folders: 2,
+              total_tags: 0,
+              unindexed_faces: s.unindexedFaces,
+              missing_files: 0,
+            },
+          });
+        }, stats);
       },
     });
   },
