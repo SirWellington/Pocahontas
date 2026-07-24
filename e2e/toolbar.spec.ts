@@ -20,10 +20,10 @@ test.describe("Toolbar", () => {
     await app.gotoLanding();
   });
 
-  test("shows logo and app name", async ({ page }) => {
-    // The toolbar always renders the logo area
-    await expect(page.getByText("Praetorian", { exact: true })).toBeVisible();
-  });
+    test("shows logo and app name", async ({ page }) => {
+      // The toolbar always renders the logo area (use .first() to avoid strict mode violation with landing page title)
+      await expect(page.getByText("Praetorian", { exact: true }).first()).toBeVisible();
+    });
 
   test("Open Catalog button visible when no catalog loaded", async ({ page }) => {
     // In toolbar (not the landing page button) — the toolbar has its own Open Catalog
@@ -47,17 +47,13 @@ test.describe("Toolbar", () => {
     await expect(importBtn).not.toBeVisible();
   });
 
-  test.describe("With catalog loaded (requires store mocking)", () => {
-    test.skip(
-      true,
-      "Requires Zustand store to be exposed on window. See toolbar.spec.ts comments."
-    );
+  test.describe("With catalog loaded", () => {
+    test.beforeEach(async ({ app, page }) => {
+      await app.gotoLanding();
+      await app.mockCatalogLoaded();
+    });
 
     test("shows Hide Sidebar and Hide Details buttons", async ({ page }) => {
-      // Uncomment after adding `window.__CATALOG_STORE__ = useCatalogStore` in useCatalog.ts
-      // await page.evaluate(() => {
-      //   (window as any).__CATALOG_STORE__.setState({ path: '/fake/catalog.praetorian' });
-      // });
       const hideSidebar = page.getByRole("button", { name: /Hide.*Sidebar/i });
       const hideDetails = page.getByRole("button", { name: /Hide.*Details/i });
       await expect(hideSidebar).toBeVisible();
@@ -65,12 +61,15 @@ test.describe("Toolbar", () => {
     });
 
     test("shows Import button in toolbar", async ({ page }) => {
-      // Uncomment after adding window exposure
-      // await page.evaluate(() => {
-      //   (window as any).__CATALOG_STORE__.setState({ path: '/fake/catalog.praetorian' });
-      // });
       const importBtn = page.locator('[class*="h-10"] >> text="Import"');
       await expect(importBtn).toBeVisible();
+    });
+
+    test("Open Catalog button NOT visible when catalog loaded", async ({ page }) => {
+      const toolbarBtn = page.locator(
+        '[class*="h-10"] >> text="Open Catalog"'
+      );
+      await expect(toolbarBtn).not.toBeVisible();
     });
   });
 });

@@ -18,6 +18,12 @@ export interface AppFixture {
   app: {
     /** Navigate to the app root. Use before each test that needs a fresh page. */
     gotoLanding: () => Promise<void>;
+    /** Mock a loaded catalog by setting Zustand store state via window. */
+    mockCatalogLoaded: () => Promise<void>;
+    /** Mock images in the catalog store for testing grid and details panel. */
+    mockImages: (count?: number) => Promise<void>;
+    /** Clear any mocked store state. */
+    clearMockState: () => Promise<void>;
   };
 }
 
@@ -26,6 +32,94 @@ export const test = base.extend<AppFixture>({
     await use({
       gotoLanding: async () => {
         await page.goto("/");
+      },
+      mockCatalogLoaded: async () => {
+        await page.evaluate(() => {
+          (window as any).__CATALOG_STORE__.setState({
+            path: "/fake/catalog.praetorian",
+            leftPanelVisible: true,
+            rightPanelVisible: true,
+            activeView: "library",
+            images: [],
+            folders: [],
+            people: [],
+            tags: [],
+            albums: [],
+            stats: null,
+            selectedImageIds: new Set(),
+            isLoading: false,
+            error: null,
+            totalImages: 0,
+          });
+        });
+      },
+      mockImages: async (count = 6) => {
+        const images = Array.from({ length: count }, (_, i) => ({
+          id: i + 1,
+          file_name: `image_${i + 1}.jpg`,
+          file_extension: "jpg",
+          file_size_bytes: 5000000 + i * 100000,
+          width: 4000 + i * 100,
+          height: 3000 + i * 50,
+          date_taken: "2025-06-15T10:30:00Z",
+          date_imported: "2025-07-01T08:00:00Z",
+          rating: i % 3,
+          is_favorite: i === 0,
+          has_thumbnail: i < 4,
+          has_preview: i < 2,
+          faces_indexed: i < 3,
+          exif: {
+            camera_make: "Canon",
+            camera_model: "EOS R5",
+            lens_model: "RF 24-70mm f/2.8L",
+            iso: 100 + i * 100,
+            aperture_f_number: 2.8 + i * 0.5,
+            shutter_speed_den: 125 + i * 10,
+            focal_length_mm: 50 + i * 5,
+            gps_latitude: 40.7128 + i * 0.001,
+            gps_longitude: -74.006 + i * 0.001,
+            gps_altitude: 10 + i,
+          },
+        }));
+
+        await page.evaluate((imgs) => {
+          (window as any).__CATALOG_STORE__.setState({
+            path: "/fake/catalog.praetorian",
+            leftPanelVisible: true,
+            rightPanelVisible: true,
+            activeView: "library",
+            images: imgs,
+            folders: [{ id: 1, name: "DCIM" }, { id: 2, name: "Photos" }],
+            people: [],
+            tags: [],
+            albums: [],
+            stats: null,
+            selectedImageIds: new Set(),
+            isLoading: false,
+            error: null,
+            totalImages: imgs.length,
+          });
+        }, images);
+      },
+      clearMockState: async () => {
+        await page.evaluate(() => {
+          (window as any).__CATALOG_STORE__.setState({
+            path: null,
+            leftPanelVisible: true,
+            rightPanelVisible: true,
+            activeView: "library",
+            images: [],
+            folders: [],
+            people: [],
+            tags: [],
+            albums: [],
+            stats: null,
+            selectedImageIds: new Set(),
+            isLoading: false,
+            error: null,
+            totalImages: 0,
+          });
+        });
       },
     });
   },

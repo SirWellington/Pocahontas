@@ -25,44 +25,39 @@ test.describe("Sidebar", () => {
     await expect(page.getByPlaceholder("Search...")).not.toBeVisible();
   });
 
-  test.describe("With catalog loaded (requires store mocking)", () => {
-    test.skip(
-      true,
-      "Requires Zustand store to be exposed on window. See sidebar.spec.ts comments."
-    );
+  test.describe("With catalog loaded", () => {
+    test.beforeEach(async ({ app, page }) => {
+      await app.gotoLanding();
+      await app.mockCatalogLoaded();
+    });
 
     test("sidebar appears with search input", async ({ page }) => {
-      // await page.evaluate(() => {
-      //   (window as any).__CATALOG_STORE__.setState({ path: '/fake/catalog.praetorian' });
-      // });
       const sidebar = page.locator('[class*="w-56"]');
       await expect(sidebar).toBeVisible();
       await expect(page.getByPlaceholder("Search...")).toBeVisible();
     });
 
     test("shows All Photos, Favorites, and Rated items", async ({ page }) => {
-      // await page.evaluate(() => {
-      //   (window as any).__CATALOG_STORE__.setState({ path: '/fake/catalog.praetorian' });
-      // });
       await expect(page.getByText("All Photos")).toBeVisible();
       await expect(page.getByText("Favorites")).toBeVisible();
       await expect(page.getByText("Rated")).toBeVisible();
     });
 
     test("shows Folders section header", async ({ page }) => {
-      // await page.evaluate(() => {
-      //   (window as any).__CATALOG_STORE__.setState({ path: '/fake/catalog.praetorian' });
-      // });
       await expect(page.getByText("Folders")).toBeVisible();
     });
 
     test("hides sidebar when toggle button clicked", async ({ page }) => {
-      // await page.evaluate(() => {
-      //   (window as any).__CATALOG_STORE__.setState({ path: '/fake/catalog.praetorian' });
-      // });
-      // await page.getByRole("button", { name: /Hide.*Sidebar/i }).click();
-      // const sidebar = page.locator('[class*="w-56"]');
-      // await expect(sidebar).not.toBeVisible();
+      await page.getByRole("button", { name: /Hide.*Sidebar/i }).click();
+      const sidebar = page.locator('[class*="w-56"]');
+      await expect(sidebar).not.toBeVisible();
+    });
+
+    test("shows folder items in Folders section", async ({ page, app }) => {
+      // mockImages includes folders in the store data
+      await app.mockImages(3);
+      await expect(page.getByText("DCIM")).toBeVisible();
+      await expect(page.getByText("Photos", { exact: true })).toBeVisible();
     });
   });
 });

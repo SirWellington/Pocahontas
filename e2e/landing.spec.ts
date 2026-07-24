@@ -21,7 +21,7 @@ test.describe("Landing Page", () => {
   });
 
   test("displays Open Catalog button", async ({ page }) => {
-    const openBtn = page.getByRole("button", { name: "Open Catalog" });
+    const openBtn = page.getByRole("button", { name: "Open Catalog" }).first();
     await expect(openBtn).toBeVisible();
     await expect(openBtn).toBeEnabled();
   });
