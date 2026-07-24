@@ -48,10 +48,23 @@ export default defineConfig({
   },
 
   // chromium browser only — matches the Tauri WebView2/WebKit runtime
+  // Dual-mode: run browser tests locally, tauri tests in CI or with `npm run e2e:tauri`
   projects: [
     {
       name: "chromium",
       use: { browserName: "chromium" },
+      testDir: "e2e",
+      testMatch: "**/*.spec.ts",
+    },
+    {
+      name: "tauri",
+      use: {
+        browserName: "chromium",
+        // Tauri app URL when running with tauri-plugin-playwright
+        baseURL: process.env.TAURI_PLAYWRIGHT_URL ?? "http://localhost:1420",
+      },
+      testDir: "e2e/tauri",
+      testMatch: "**/*.spec.ts",
     },
   ],
 });
