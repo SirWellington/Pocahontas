@@ -9,11 +9,19 @@ mod python;
 use anyhow::Result;
 use tokio::sync::Mutex;
 use tauri::{Manager, State};
+use sqlx::SqlitePool;
 use catalog::manager::{CatalogManager, FaceRecord, PersonRecord, TagRecord, AlbumRecord, CatalogStats};
 
 /// App-level state shared across Tauri commands.
 pub struct AppState {
     pub catalog: Mutex<Option<CatalogManager>>,
+}
+
+/// Extract the SQLite pool from app state, or return an error if no catalog is open.
+async fn get_pool(state: State<'_, AppState>) -> Result<SqlitePool, String> {
+    let guard = state.catalog.lock().await;
+    let catalog = guard.as_ref().ok_or_else(|| "No catalog open".to_string())?;
+    Ok(catalog.db.pool().clone())
 }
 
 #[tauri::command]
@@ -51,11 +59,7 @@ async fn import_directory(
     dir_path: String,
     state: State<'_, AppState>,
 ) -> Result<usize, String> {
-    let pool = {
-        let guard = state.catalog.lock().await;
-        let catalog = guard.as_ref().ok_or_else(|| "No catalog open".to_string())?;
-        catalog.db.pool().clone()
-    };
+    let pool = get_pool(state).await?;
 
     let imported = CatalogManager::import_directory_from_pool(&pool, &dir_path)
         .await
@@ -72,11 +76,7 @@ async fn list_images(
     rating_filter: Option<i32>,
     state: State<'_, AppState>,
 ) -> Result<Vec<catalog::manager::ImageRecord>, String> {
-    let pool = {
-        let guard = state.catalog.lock().await;
-        let catalog = guard.as_ref().ok_or_else(|| "No catalog open".to_string())?;
-        catalog.db.pool().clone()
-    };
+    let pool = get_pool(state).await?;
 
     let images = CatalogManager::list_images_from_pool(&pool, offset, limit, rating_filter)
         .await
@@ -88,11 +88,7 @@ async fn list_images(
 /// Returns the total number of images in the catalog.
 #[tauri::command]
 async fn count_images(state: State<'_, AppState>) -> Result<i64, String> {
-    let pool = {
-        let guard = state.catalog.lock().await;
-        let catalog = guard.as_ref().ok_or_else(|| "No catalog open".to_string())?;
-        catalog.db.pool().clone()
-    };
+    let pool = get_pool(state).await?;
 
     let count = CatalogManager::count_images_from_pool(&pool)
         .await
@@ -206,11 +202,7 @@ async fn get_image_details(
     image_id: i64,
     state: State<'_, AppState>,
 ) -> Result<serde_json::Value, String> {
-    let pool = {
-        let guard = state.catalog.lock().await;
-        let catalog = guard.as_ref().ok_or_else(|| "No catalog open".to_string())?;
-        catalog.db.pool().clone()
-    };
+    let pool = get_pool(state).await?;
 
     let (image, exif) = CatalogManager::get_image_details_from_pool(&pool, image_id)
         .await
@@ -232,11 +224,7 @@ async fn update_rating(
     rating: i32,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    let pool = {
-        let guard = state.catalog.lock().await;
-        let catalog = guard.as_ref().ok_or_else(|| "No catalog open".to_string())?;
-        catalog.db.pool().clone()
-    };
+    let pool = get_pool(state).await?;
 
     CatalogManager::update_rating_from_pool(&pool, image_id, rating)
         .await
@@ -250,11 +238,7 @@ async fn toggle_favorite(
     image_id: i64,
     state: State<'_, AppState>,
 ) -> Result<bool, String> {
-    let pool = {
-        let guard = state.catalog.lock().await;
-        let catalog = guard.as_ref().ok_or_else(|| "No catalog open".to_string())?;
-        catalog.db.pool().clone()
-    };
+    let pool = get_pool(state).await?;
 
     let is_favorite = CatalogManager::toggle_favorite_from_pool(&pool, image_id)
         .await
@@ -269,11 +253,7 @@ async fn set_favorite(
     is_favorite: bool,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    let pool = {
-        let guard = state.catalog.lock().await;
-        let catalog = guard.as_ref().ok_or_else(|| "No catalog open".to_string())?;
-        catalog.db.pool().clone()
-    };
+    let pool = get_pool(state).await?;
 
     CatalogManager::set_favorite_from_pool(&pool, image_id, is_favorite)
         .await
@@ -288,11 +268,7 @@ async fn archive_image(
     is_archived: bool,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    let pool = {
-        let guard = state.catalog.lock().await;
-        let catalog = guard.as_ref().ok_or_else(|| "No catalog open".to_string())?;
-        catalog.db.pool().clone()
-    };
+    let pool = get_pool(state).await?;
 
     CatalogManager::archive_image_from_pool(&pool, image_id, is_archived)
         .await
@@ -306,11 +282,7 @@ async fn delete_image(
     image_id: i64,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    let pool = {
-        let guard = state.catalog.lock().await;
-        let catalog = guard.as_ref().ok_or_else(|| "No catalog open".to_string())?;
-        catalog.db.pool().clone()
-    };
+    let pool = get_pool(state).await?;
 
     CatalogManager::delete_image_from_pool(&pool, image_id)
         .await
@@ -324,11 +296,7 @@ async fn delete_images(
     image_ids: Vec<i64>,
     state: State<'_, AppState>,
 ) -> Result<usize, String> {
-    let pool = {
-        let guard = state.catalog.lock().await;
-        let catalog = guard.as_ref().ok_or_else(|| "No catalog open".to_string())?;
-        catalog.db.pool().clone()
-    };
+    let pool = get_pool(state).await?;
 
     let deleted = CatalogManager::delete_images_from_pool(&pool, &image_ids)
         .await
@@ -344,11 +312,7 @@ async fn search_images(
     limit: i64,
     state: State<'_, AppState>,
 ) -> Result<Vec<catalog::manager::ImageRecord>, String> {
-    let pool = {
-        let guard = state.catalog.lock().await;
-        let catalog = guard.as_ref().ok_or_else(|| "No catalog open".to_string())?;
-        catalog.db.pool().clone()
-    };
+    let pool = get_pool(state).await?;
 
     let images = CatalogManager::search_images_from_pool(&pool, &query, offset, limit)
         .await
@@ -362,11 +326,7 @@ async fn count_search_results(
     query: String,
     state: State<'_, AppState>,
 ) -> Result<i64, String> {
-    let pool = {
-        let guard = state.catalog.lock().await;
-        let catalog = guard.as_ref().ok_or_else(|| "No catalog open".to_string())?;
-        catalog.db.pool().clone()
-    };
+    let pool = get_pool(state).await?;
 
     let count = CatalogManager::count_search_results_from_pool(&pool, &query)
         .await
@@ -382,11 +342,7 @@ async fn filter_by_camera(
     limit: i64,
     state: State<'_, AppState>,
 ) -> Result<Vec<catalog::manager::ImageRecord>, String> {
-    let pool = {
-        let guard = state.catalog.lock().await;
-        let catalog = guard.as_ref().ok_or_else(|| "No catalog open".to_string())?;
-        catalog.db.pool().clone()
-    };
+    let pool = get_pool(state).await?;
 
     let images = CatalogManager::filter_by_camera_from_pool(&pool, &camera_model, offset, limit)
         .await
@@ -402,11 +358,7 @@ async fn filter_by_lens(
     limit: i64,
     state: State<'_, AppState>,
 ) -> Result<Vec<catalog::manager::ImageRecord>, String> {
-    let pool = {
-        let guard = state.catalog.lock().await;
-        let catalog = guard.as_ref().ok_or_else(|| "No catalog open".to_string())?;
-        catalog.db.pool().clone()
-    };
+    let pool = get_pool(state).await?;
 
     let images = CatalogManager::filter_by_lens_from_pool(&pool, &lens_model, offset, limit)
         .await
@@ -422,11 +374,7 @@ async fn filter_by_person(
     limit: i64,
     state: State<'_, AppState>,
 ) -> Result<Vec<catalog::manager::ImageRecord>, String> {
-    let pool = {
-        let guard = state.catalog.lock().await;
-        let catalog = guard.as_ref().ok_or_else(|| "No catalog open".to_string())?;
-        catalog.db.pool().clone()
-    };
+    let pool = get_pool(state).await?;
 
     let images = CatalogManager::filter_by_person_from_pool(&pool, person_id, offset, limit)
         .await
@@ -442,11 +390,7 @@ async fn filter_by_tag(
     limit: i64,
     state: State<'_, AppState>,
 ) -> Result<Vec<catalog::manager::ImageRecord>, String> {
-    let pool = {
-        let guard = state.catalog.lock().await;
-        let catalog = guard.as_ref().ok_or_else(|| "No catalog open".to_string())?;
-        catalog.db.pool().clone()
-    };
+    let pool = get_pool(state).await?;
 
     let images = CatalogManager::filter_by_tag_from_pool(&pool, tag_id, offset, limit)
         .await
@@ -462,11 +406,7 @@ async fn filter_by_album(
     limit: i64,
     state: State<'_, AppState>,
 ) -> Result<Vec<catalog::manager::ImageRecord>, String> {
-    let pool = {
-        let guard = state.catalog.lock().await;
-        let catalog = guard.as_ref().ok_or_else(|| "No catalog open".to_string())?;
-        catalog.db.pool().clone()
-    };
+    let pool = get_pool(state).await?;
 
     let images = CatalogManager::filter_by_album_from_pool(&pool, album_id, offset, limit)
         .await
@@ -481,11 +421,7 @@ async fn filter_by_album(
 /// Lists all recognized people.
 #[tauri::command]
 async fn list_people(state: State<'_, AppState>) -> Result<Vec<PersonRecord>, String> {
-    let pool = {
-        let guard = state.catalog.lock().await;
-        let catalog = guard.as_ref().ok_or_else(|| "No catalog open".to_string())?;
-        catalog.db.pool().clone()
-    };
+    let pool = get_pool(state).await?;
 
     let people = CatalogManager::list_people_from_pool(&pool)
         .await
@@ -499,11 +435,7 @@ async fn create_person(
     name: String,
     state: State<'_, AppState>,
 ) -> Result<i64, String> {
-    let pool = {
-        let guard = state.catalog.lock().await;
-        let catalog = guard.as_ref().ok_or_else(|| "No catalog open".to_string())?;
-        catalog.db.pool().clone()
-    };
+    let pool = get_pool(state).await?;
 
     let id = CatalogManager::create_person_from_pool(&pool, &name)
         .await
@@ -518,11 +450,7 @@ async fn update_person_name(
     name: String,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    let pool = {
-        let guard = state.catalog.lock().await;
-        let catalog = guard.as_ref().ok_or_else(|| "No catalog open".to_string())?;
-        catalog.db.pool().clone()
-    };
+    let pool = get_pool(state).await?;
 
     CatalogManager::update_person_name_from_pool(&pool, person_id, &name)
         .await
@@ -536,11 +464,7 @@ async fn delete_person(
     person_id: i64,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    let pool = {
-        let guard = state.catalog.lock().await;
-        let catalog = guard.as_ref().ok_or_else(|| "No catalog open".to_string())?;
-        catalog.db.pool().clone()
-    };
+    let pool = get_pool(state).await?;
 
     CatalogManager::delete_person_from_pool(&pool, person_id)
         .await
@@ -555,11 +479,7 @@ async fn assign_face_to_person(
     person_id: i64,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    let pool = {
-        let guard = state.catalog.lock().await;
-        let catalog = guard.as_ref().ok_or_else(|| "No catalog open".to_string())?;
-        catalog.db.pool().clone()
-    };
+    let pool = get_pool(state).await?;
 
     CatalogManager::assign_face_to_person_from_pool(&pool, face_id, person_id)
         .await
@@ -573,11 +493,7 @@ async fn unassign_face_from_person(
     face_id: i64,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    let pool = {
-        let guard = state.catalog.lock().await;
-        let catalog = guard.as_ref().ok_or_else(|| "No catalog open".to_string())?;
-        catalog.db.pool().clone()
-    };
+    let pool = get_pool(state).await?;
 
     CatalogManager::unassign_face_from_person_from_pool(&pool, face_id)
         .await
@@ -591,11 +507,7 @@ async fn get_faces_for_image(
     image_id: i64,
     state: State<'_, AppState>,
 ) -> Result<Vec<FaceRecord>, String> {
-    let pool = {
-        let guard = state.catalog.lock().await;
-        let catalog = guard.as_ref().ok_or_else(|| "No catalog open".to_string())?;
-        catalog.db.pool().clone()
-    };
+    let pool = get_pool(state).await?;
 
     let faces = CatalogManager::get_faces_for_image_from_pool(&pool, image_id)
         .await
@@ -609,11 +521,7 @@ async fn get_faces_for_person(
     person_id: i64,
     state: State<'_, AppState>,
 ) -> Result<Vec<FaceRecord>, String> {
-    let pool = {
-        let guard = state.catalog.lock().await;
-        let catalog = guard.as_ref().ok_or_else(|| "No catalog open".to_string())?;
-        catalog.db.pool().clone()
-    };
+    let pool = get_pool(state).await?;
 
     let faces = CatalogManager::get_faces_for_person_from_pool(&pool, person_id)
         .await
@@ -627,11 +535,7 @@ async fn get_images_for_person(
     person_id: i64,
     state: State<'_, AppState>,
 ) -> Result<Vec<catalog::manager::ImageRecord>, String> {
-    let pool = {
-        let guard = state.catalog.lock().await;
-        let catalog = guard.as_ref().ok_or_else(|| "No catalog open".to_string())?;
-        catalog.db.pool().clone()
-    };
+    let pool = get_pool(state).await?;
 
     let images = CatalogManager::get_images_for_person_from_pool(&pool, person_id)
         .await
@@ -646,11 +550,7 @@ async fn get_images_for_person(
 /// Lists all tags.
 #[tauri::command]
 async fn list_tags(state: State<'_, AppState>) -> Result<Vec<TagRecord>, String> {
-    let pool = {
-        let guard = state.catalog.lock().await;
-        let catalog = guard.as_ref().ok_or_else(|| "No catalog open".to_string())?;
-        catalog.db.pool().clone()
-    };
+    let pool = get_pool(state).await?;
 
     let tags = CatalogManager::list_tags_from_pool(&pool)
         .await
@@ -665,11 +565,7 @@ async fn create_tag(
     color: Option<String>,
     state: State<'_, AppState>,
 ) -> Result<i64, String> {
-    let pool = {
-        let guard = state.catalog.lock().await;
-        let catalog = guard.as_ref().ok_or_else(|| "No catalog open".to_string())?;
-        catalog.db.pool().clone()
-    };
+    let pool = get_pool(state).await?;
 
     let id = CatalogManager::create_tag_from_pool(&pool, &name, color.as_deref())
         .await
@@ -683,11 +579,7 @@ async fn delete_tag(
     tag_id: i64,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    let pool = {
-        let guard = state.catalog.lock().await;
-        let catalog = guard.as_ref().ok_or_else(|| "No catalog open".to_string())?;
-        catalog.db.pool().clone()
-    };
+    let pool = get_pool(state).await?;
 
     CatalogManager::delete_tag_from_pool(&pool, tag_id)
         .await
@@ -702,11 +594,7 @@ async fn tag_image(
     tag_id: i64,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    let pool = {
-        let guard = state.catalog.lock().await;
-        let catalog = guard.as_ref().ok_or_else(|| "No catalog open".to_string())?;
-        catalog.db.pool().clone()
-    };
+    let pool = get_pool(state).await?;
 
     CatalogManager::tag_image_from_pool(&pool, image_id, tag_id)
         .await
@@ -721,11 +609,7 @@ async fn untag_image(
     tag_id: i64,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    let pool = {
-        let guard = state.catalog.lock().await;
-        let catalog = guard.as_ref().ok_or_else(|| "No catalog open".to_string())?;
-        catalog.db.pool().clone()
-    };
+    let pool = get_pool(state).await?;
 
     CatalogManager::untag_image_from_pool(&pool, image_id, tag_id)
         .await
@@ -739,11 +623,7 @@ async fn get_tags_for_image(
     image_id: i64,
     state: State<'_, AppState>,
 ) -> Result<Vec<TagRecord>, String> {
-    let pool = {
-        let guard = state.catalog.lock().await;
-        let catalog = guard.as_ref().ok_or_else(|| "No catalog open".to_string())?;
-        catalog.db.pool().clone()
-    };
+    let pool = get_pool(state).await?;
 
     let tags = CatalogManager::get_tags_for_image_from_pool(&pool, image_id)
         .await
@@ -758,11 +638,7 @@ async fn get_tags_for_image(
 /// Lists all albums.
 #[tauri::command]
 async fn list_albums(state: State<'_, AppState>) -> Result<Vec<AlbumRecord>, String> {
-    let pool = {
-        let guard = state.catalog.lock().await;
-        let catalog = guard.as_ref().ok_or_else(|| "No catalog open".to_string())?;
-        catalog.db.pool().clone()
-    };
+    let pool = get_pool(state).await?;
 
     let albums = CatalogManager::list_albums_from_pool(&pool)
         .await
@@ -777,11 +653,7 @@ async fn create_album(
     description: Option<String>,
     state: State<'_, AppState>,
 ) -> Result<i64, String> {
-    let pool = {
-        let guard = state.catalog.lock().await;
-        let catalog = guard.as_ref().ok_or_else(|| "No catalog open".to_string())?;
-        catalog.db.pool().clone()
-    };
+    let pool = get_pool(state).await?;
 
     let id = CatalogManager::create_album_from_pool(&pool, &name, description.as_deref())
         .await
@@ -795,11 +667,7 @@ async fn delete_album(
     album_id: i64,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    let pool = {
-        let guard = state.catalog.lock().await;
-        let catalog = guard.as_ref().ok_or_else(|| "No catalog open".to_string())?;
-        catalog.db.pool().clone()
-    };
+    let pool = get_pool(state).await?;
 
     CatalogManager::delete_album_from_pool(&pool, album_id)
         .await
@@ -814,11 +682,7 @@ async fn add_image_to_album(
     image_id: i64,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    let pool = {
-        let guard = state.catalog.lock().await;
-        let catalog = guard.as_ref().ok_or_else(|| "No catalog open".to_string())?;
-        catalog.db.pool().clone()
-    };
+    let pool = get_pool(state).await?;
 
     CatalogManager::add_image_to_album_from_pool(&pool, album_id, image_id)
         .await
@@ -833,11 +697,7 @@ async fn remove_image_from_album(
     image_id: i64,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    let pool = {
-        let guard = state.catalog.lock().await;
-        let catalog = guard.as_ref().ok_or_else(|| "No catalog open".to_string())?;
-        catalog.db.pool().clone()
-    };
+    let pool = get_pool(state).await?;
 
     CatalogManager::remove_image_from_album_from_pool(&pool, album_id, image_id)
         .await
@@ -853,11 +713,7 @@ async fn get_images_for_album(
     limit: i64,
     state: State<'_, AppState>,
 ) -> Result<Vec<catalog::manager::ImageRecord>, String> {
-    let pool = {
-        let guard = state.catalog.lock().await;
-        let catalog = guard.as_ref().ok_or_else(|| "No catalog open".to_string())?;
-        catalog.db.pool().clone()
-    };
+    let pool = get_pool(state).await?;
 
     let images = CatalogManager::get_images_for_album_from_pool(&pool, album_id, offset, limit)
         .await
@@ -872,11 +728,7 @@ async fn get_images_for_album(
 /// Gets overall catalog statistics.
 #[tauri::command]
 async fn get_catalog_stats(state: State<'_, AppState>) -> Result<CatalogStats, String> {
-    let pool = {
-        let guard = state.catalog.lock().await;
-        let catalog = guard.as_ref().ok_or_else(|| "No catalog open".to_string())?;
-        catalog.db.pool().clone()
-    };
+    let pool = get_pool(state).await?;
 
     let stats = CatalogManager::get_catalog_stats_from_pool(&pool)
         .await
@@ -895,11 +747,7 @@ async fn export_xmp_sidecars(
     output_dir: String,
     state: State<'_, AppState>,
 ) -> Result<usize, String> {
-    let pool = {
-        let guard = state.catalog.lock().await;
-        let catalog = guard.as_ref().ok_or_else(|| "No catalog open".to_string())?;
-        catalog.db.pool().clone()
-    };
+    let pool = get_pool(state).await?;
 
     let exported = CatalogManager::export_xmp_sidecars_from_pool(&pool, &image_ids, &output_dir)
         .await
